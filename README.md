@@ -134,7 +134,7 @@ The key mechanic: the payout is principal-locked. The member who receives it has
 
 What the member who received the early payout keeps is the yield differential — the additional compounding they earned by having the full pool amount working for them from the moment of selection, rather than contributing installments and receiving the pool only at the end.
 
-> [!TIP]
+> [!EXAMPLE]
 > **The Compounding Advantage, Made Concrete**
 >
 > A 10-member circle each contributing $200/month creates a $2,000 pool. The member selected in round one earns yield on $2,000 from that moment. The member selected in round ten earns yield on $200 for nine months, then $2,000 for one month. The gap between these two outcomes is the yield leverage premium — the structural advantage that previously required wealth to access, now distributed by rotation.
