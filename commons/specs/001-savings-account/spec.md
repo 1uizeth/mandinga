@@ -9,7 +9,7 @@
 
 ## Overview
 
-The Savings Account is the foundational primitive of Commons Protocol. It is a self-custodial, yield-bearing position denominated in a dollar-stable asset (USDC or equivalent). Every member interaction with the protocol begins here.
+The Savings Account is the foundational primitive of Mandinga Protocol. It is a self-custodial, yield-bearing position denominated in a dollar-stable asset (USDC or equivalent). Every member interaction with the protocol begins here.
 
 The Savings Account does two jobs:
 

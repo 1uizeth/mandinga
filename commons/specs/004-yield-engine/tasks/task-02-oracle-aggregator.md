@@ -59,5 +59,5 @@ See: Spec 004, US-003 (Oracle Integration).
 
 - Chainlink feeds return rates in their own format (check `decimals()` on each feed and normalise to basis points)
 - The median of an even-length array should use the average of the two middle values
-- Owner in this context is the `CommonsGovernor` timelock — not an EOA
+- Owner in this context is the `MandigaGovernor` timelock — not an EOA
 - Do not use SafeMath explicitly (Solidity 0.8+ has overflow protection built in)

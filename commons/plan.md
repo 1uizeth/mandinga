@@ -1,4 +1,4 @@
-# Commons Protocol — Technical Plan
+# Mandinga Protocol — Technical Plan
 
 **Version:** 0.1
 **Date:** February 2026
@@ -8,7 +8,7 @@
 
 ## 1. Architecture Overview
 
-Commons Protocol is a four-layer system:
+Mandinga Protocol is a four-layer system:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -49,7 +49,7 @@ Commons Protocol is a four-layer system:
 ## 2. Repository Structure
 
 ```
-commons-protocol/
+mandinga-protocol/
 ├── contracts/
 │   ├── core/
 │   │   ├── SavingsAccount.sol
@@ -66,7 +66,7 @@ commons-protocol/
 │   │   ├── MembershipVerifier.sol
 │   │   └── HistoryVerifier.sol
 │   ├── governance/
-│   │   └── CommonsGovernor.sol
+│   │   └── MandigaGovernor.sol
 │   └── interfaces/
 │       ├── ISavingsAccount.sol
 │       ├── ISavingsCircle.sol
@@ -276,7 +276,7 @@ Rationale:
 - [ ] Testnet deployment
 
 ### Milestone 5: Governance and Security (Weeks 29–36)
-- [ ] `CommonsGovernor.sol` — one-member-one-vote governance
+- [ ] `MandigaGovernor.sol` — one-member-one-vote governance
 - [ ] Governance parameters (fee rate, allocation weights, buffer reserve %)
 - [ ] `OndoAdapter.sol` — real-world yield source integration
 - [ ] External security audit (all contracts)

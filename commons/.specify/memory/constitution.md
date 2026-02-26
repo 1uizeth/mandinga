@@ -1,22 +1,22 @@
-# Commons Protocol — Constitution
+# Mandinga Protocol — Constitution
 
-> The immutable architectural DNA of Commons Protocol. Every specification, plan, and task must align with these principles. When in doubt, return to this document.
+> The immutable architectural DNA of Mandinga Protocol. Every specification, plan, and task must align with these principles. When in doubt, return to this document.
 
 ---
 
 ## 1. What We Are Building
 
-Commons Protocol is a **solidarity savings primitive** — a self-custodial, privacy-first protocol that gives anyone on Earth access to the compounding advantage of lump-sum capital, without a bank account, without KYC, and without surrendering custody of funds.
+Mandinga Protocol is a **solidarity savings primitive** — a self-custodial, privacy-first protocol that gives anyone on Earth access to the compounding advantage of lump-sum capital, without a bank account, without KYC, and without surrendering custody of funds.
 
 It encodes the logic of the rotating savings and credit association (ROSCA) — the most widely used community savings mechanism in human history — into immutable, permissionless smart contracts on Ethereum, with a privacy layer that protects member balances, contribution history, and circle membership from public exposure.
 
-**Commons Protocol is not:**
+**Mandinga Protocol is not:**
 - A stablecoin
 - A yield aggregator
 - A lending protocol
 - A credit product dressed as savings
 
-**Commons Protocol is:**
+**Mandinga Protocol is:**
 - A solidarity savings primitive
 - Infrastructure for cooperative financial access
 - A mechanism where community IS the collateral
@@ -29,7 +29,7 @@ These principles cannot be relaxed, traded off, or deferred to a later version. 
 
 ### 2.1 No Organiser — Ever
 
-The catastrophic failure mode of traditional ROSCAs is the organiser as single point of trust and control. Commons Protocol must eliminate this failure mode entirely.
+The catastrophic failure mode of traditional ROSCAs is the organiser as single point of trust and control. Mandinga Protocol must eliminate this failure mode entirely.
 
 **Implication:** No human actor, multi-sig, or DAO vote may control the rotation order, hold the pool, or have discretion over any member's principal. All rotation logic, pool custody, and enforcement must be in the smart contract layer.
 
@@ -103,7 +103,7 @@ These invariants must hold at all times. Any state transition that violates them
 
 ## 5. What We Are Explicitly Not Building (Consórcio Anti-Patterns)
 
-The Brazilian consórcio is the cautionary tale. These patterns must never appear in Commons Protocol:
+The Brazilian consórcio is the cautionary tale. These patterns must never appear in Mandinga Protocol:
 
 | Anti-Pattern | Why It's Forbidden |
 |---|---|
@@ -145,12 +145,12 @@ The Brazilian consórcio is the cautionary tale. These patterns must never appea
 
 ## 7. Success Metrics
 
-The success of Commons Protocol is **not** measured by:
+The success of Mandinga Protocol is **not** measured by:
 - TVL (total value locked)
 - APY offered
 - Token price
 
-The success of Commons Protocol **is** measured by:
+The success of Mandinga Protocol **is** measured by:
 - Number of people who accessed lump-sum capital earlier than they could have alone
 - Number of circles that completed without failure
 - Geographic and economic breadth of participation
@@ -165,7 +165,7 @@ Before shipping any feature, ask: **could this exist without Ethereum?**
 - If yes: the feature is unnecessary complexity. Simplify.
 - If no: the feature is justified. The constraint that makes it only possible on Ethereum is a feature, not a limitation.
 
-Commons Protocol passes the Defipunk test on its core mechanics:
+Mandinga Protocol passes the Defipunk test on its core mechanics:
 - Privacy-first balance shielding on a public ledger → requires ZK cryptography
 - Trustless principal lock without custodian → requires smart contract enforcement
 - Verifiable randomness for fair selection → requires on-chain VRF

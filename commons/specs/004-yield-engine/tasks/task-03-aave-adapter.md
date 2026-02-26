@@ -17,7 +17,7 @@ Implement `AaveAdapter.sol` — a yield source adapter that deposits USDC into A
 
 ## Context
 
-Aave V3 is the primary DeFi yield source for Commons Protocol. The adapter wraps Aave's pool interface to present a uniform interface to the YieldRouter, handling the aToken mechanics internally.
+Aave V3 is the primary DeFi yield source for Mandinga Protocol. The adapter wraps Aave's pool interface to present a uniform interface to the YieldRouter, handling the aToken mechanics internally.
 
 See: Spec 004, US-002 (Real-World Yield Sources), US-001 (Automatic Yield Routing).
 

@@ -11,7 +11,7 @@
 
 The Privacy Layer is the cryptographic infrastructure that ensures member balances, contribution history, and circle membership are shielded from the public ledger. The public chain sees only cryptographic proofs of valid participation — not who is saving, how much, or with whom.
 
-Privacy is not a feature in Commons Protocol. It is a constitutional requirement. Without it, the protocol cannot serve its intended users: people in jurisdictions with financial surveillance, people who cannot safely expose their savings to public observation, and communities whose social fabric depends on the discretion that makes traditional ROSCAs work.
+Privacy is not a feature in Mandinga Protocol. It is a constitutional requirement. Without it, the protocol cannot serve its intended users: people in jurisdictions with financial surveillance, people who cannot safely expose their savings to public observation, and communities whose social fabric depends on the discretion that makes traditional ROSCAs work.
 
 ---
 

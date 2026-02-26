@@ -9,7 +9,7 @@
 
 ## Overview
 
-The Solidarity Market is the peer vouching layer of Commons Protocol. It solves the access gap for members whose savings balance is growing but not yet sufficient for meaningful circle participation.
+The Solidarity Market is the peer vouching layer of Mandinga Protocol. It solves the access gap for members whose savings balance is growing but not yet sufficient for meaningful circle participation.
 
 A member with a larger balance can extend a **vouch** to another member. The vouch designates a portion of the voucher's balance as backing for the vouched member's circle participation, effectively allowing them to join a larger circle tier than their own balance would qualify them for.
 
