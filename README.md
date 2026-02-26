@@ -2,7 +2,7 @@
 
 ### *A Solidarity Savings Primitive for Everyone*
 
-*Lightpaper v0.1 — February 2026*
+*Lightpaper v0.2 — February 2026*
 
 *Mandinga Protocol is a privacy-first, self-custodial savings primitive that gives anyone on Earth access to competitive, real-world yield — without a bank account, without KYC, and without surrendering custody of their funds. Built on an ancient human coordination mechanism — the savings circle — it uses yield-routed capital, structural enforcement, and a peer solidarity market to democratise the single most powerful wealth-building force available: compounding on a lump sum.*
 
@@ -108,6 +108,8 @@ Mandinga Protocol is built on a distinction that matters: the difference between
 
 Charity DeFi would give yield to the poor as a subsidy. Solidarity DeFi gives everyone the structural mechanism to access lump-sum capital on equal terms, governed by the community, with surplus flowing back to members.
 
+This distinction, developed as a structural design principle by [Bread Cooperative](https://bread.coop) in their work on solidarity primitives, is what drove the decision to remove auctions from the circle mechanic entirely. Auctions reintroduce the charity logic: those with capital buy priority, everyone else waits. Removing auctions closes that imbalance vector at the protocol level. But removing auctions does not eliminate the human desire to get access earlier — it relocates it. In Mandinga, the only remaining path to accelerated circle access is getting vouched. Vouching is not a loophole. It is the solidarity mechanism: access earned through relationship, not capital.
+
 This maps directly onto the Defipunk values articulated by the Ethereum Foundation: finance that is permissionless, censorship-resistant, privacy-first, self-custodial, and open source. Not finance that is marginally better than TradFi — finance that could not exist without Ethereum.
 
 The three principles that guide every design decision in Mandinga Protocol are:
@@ -134,7 +136,7 @@ The key mechanic: the payout is principal-locked. The member who receives it has
 
 What the member who received the early payout keeps is the yield differential — the additional compounding they earned by having the full pool amount working for them from the moment of selection, rather than contributing installments and receiving the pool only at the end.
 
-> [!EXAMPLE]
+> [!TIP]
 > **The Compounding Advantage, Made Concrete**
 >
 > A 10-member circle each contributing $200/month creates a $2,000 pool. The member selected in round one earns yield on $2,000 from that moment. The member selected in round ten earns yield on $200 for nine months, then $2,000 for one month. The gap between these two outcomes is the yield leverage premium — the structural advantage that previously required wealth to access, now distributed by rotation.
@@ -166,7 +168,15 @@ A member with a larger balance can extend a vouch to another member. The vouch d
 
 The vouch is economically real. The vouched portion of the voucher's balance is deployed on behalf of the vouched member and cannot be withdrawn while the vouch is active. If the vouched member's savings balance falls below the circle threshold and participation pauses, the vouch obligation also pauses. The voucher has full visibility into the status of all active vouches.
 
-### 4.2 Two Strategies, One Protocol
+Because vouching is now the primary path to accelerated access, its integrity matters. The mechanism is designed to be maximally P2P: no institution intermediates the relationship, no platform decides who can vouch for whom. What secures it instead is selective disclosure through zero-knowledge proofs. A voucher can require a prospective vouched member to prove specific attributes — that they are a real person, that they are based in a particular jurisdiction, that they have completed a prior circle elsewhere — without any of that information being revealed to the protocol, to other members, or to the public ledger. The voucher sees only the proof. The vouched member controls what they disclose. Both parties transact with cryptographic guarantees about who they are dealing with, and no one else needs to know.
+
+### 4.2 Agentic Matchmaking
+
+Finding the right vouch relationship is itself a coordination problem. An AI agent can match members seeking vouches with members in a position to extend them, based on savings history, circle goals, and selectively disclosed context — without exposing identity. The member seeking a vouch signals what they are saving toward. The member with capital to deploy signals what kinds of vouches they are open to. The agent finds the fit.
+
+The sociality of the circle, automated without being surveilled.
+
+### 4.3 Two Strategies, One Protocol
 
 Mandinga Protocol offers two complementary participation strategies that serve different member profiles and risk appetites:
 
@@ -270,6 +280,18 @@ The success metric is not TVL. It is not APY. It is the number of people who acc
 The vision is a world where the ancient practice of community savings — the mechanism that has helped hundreds of millions of people build financial stability for millennia — is finally free from its structural vulnerabilities. Where a seamstress in Lagos, a delivery driver in São Paulo who knows exactly what a consórcio costs and why the bar should be higher, a developer in Buenos Aires, and a diaspora family across three continents can all participate in the same solidarity primitive, governed by the same cooperative logic, with the same privacy protections, and the same structural guarantees.
 
 Finance that couldn't exist without Ethereum. Finance that the world has been trying to build for thousands of years and never quite could. Until now.
+
+---
+
+## 8. Open Questions This Work Does Not Resolve
+
+Mandinga's current design makes a specific bet: that structural enforcement through balance-backed obligations removes the need for reputation systems. This is an architectural choice, not a settled answer. The open questions we are actively thinking about:
+
+- Does removing reputation entirely also remove the social accountability that makes circles function as community infrastructure rather than anonymous financial instruments?
+- Can a trust score be designed that gamifies positive participation history without recreating credit bureau dynamics or gating access on identity?
+- How should the protocol handle emergency needs — the human reality that someone may need their money before their rotation comes, independent of the structural mechanics?
+
+These are conversations we want to have openly. We are actively seeking practitioners, researchers, and builders working in this space. If that is you, reach out.
 
 ---
 
