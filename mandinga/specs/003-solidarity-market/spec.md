@@ -1,9 +1,20 @@
 # Spec 003 — Solidarity Market
 
 **Status:** Draft
-**Version:** 0.1
+**Version:** 0.2
 **Date:** February 2026
 **Depends on:** Spec 001 (Savings Account), Spec 002 (Savings Circle)
+
+---
+
+## Changelog
+
+**v0.2 (February 2026):**
+- Vouch amounts are stored as **shares** (`vouchShares`), not USDC. This is consistent with how SavingsAccount stores all positions.
+- The 80% diversification floor is checked in shares: `totalVouchedShares / sharesBalance <= 0.8`.
+- OQ-004 (voucher balance falls below diversification floor due to yield) is partially resolved: yield only increases `sharesBalance`, so the 80% check only tightens if the voucher withdraws capital — not from yield fluctuations.
+- Interest accrual: specified as a **USDC-equivalent rate** applied to `convertToAssets(vouchShares)` — avoids the complexity of a shares-denominated interest rate that changes with share price.
+- Payout share: `yieldLeveragePremium` is now precisely defined (from Spec 002 OQ-002 resolution): `convertToAssets(payoutShares_now) - poolUsdc_at_selection`.
 
 ---
 
@@ -40,11 +51,11 @@ Two profiles benefit:
 
 **Acceptance Criteria:**
 - AC-001-1: A member can vouch for another member from the Solidarity Market interface
-- AC-001-2: The voucher specifies: the vouched member's address, the vouch amount (a portion of their savings balance), and the circle tier being backed
-- AC-001-3: The vouch amount is immediately locked in the voucher's Savings Account — it cannot be withdrawn while the vouch is active
-- AC-001-4: A single member cannot vouch more than 80% of their total balance across all active vouches combined (diversification floor)
-- AC-001-5: A member can have a maximum of 20 active vouches simultaneously (to prevent concentration risk)
-- AC-001-6: The voucher sees a projected income estimate (interest rate + expected payout share) before confirming the vouch
+- AC-001-2: The voucher specifies: the vouched member's shielded ID, the vouch USDC amount (converted to `vouchShares = convertToShares(vouchUsdc)`), and the circle tier being backed
+- AC-001-3: `vouchShares` is added to the voucher's `circleObligationShares` — these shares are locked and cannot be withdrawn while the vouch is active
+- AC-001-4: The diversification floor is enforced in shares: `(totalActiveVouchedShares + vouchShares) / sharesBalance <= 0.8`. Since yield only increases `sharesBalance`, this ratio can only worsen if the voucher *withdraws* capital — not from yield appreciation.
+- AC-001-5: A member can have a maximum of 20 active vouches simultaneously
+- AC-001-6: The voucher sees a projected income estimate (annualised interest on `convertToAssets(vouchShares)` + expected payout share at current APY) before confirming
 
 ### US-002 · Receive a Vouch
 **As a** member with a smaller savings balance,
@@ -65,11 +76,11 @@ Two profiles benefit:
 **So that** my idle capital generates passive income.
 
 **Acceptance Criteria:**
-- AC-003-1: The voucher earns a continuous interest rate on the locked vouch amount, paid from the vouched member's yield earnings
-- AC-003-2: The interest rate is set at the time the vouch is created and is fixed for the vouch duration (no variable rate that can be gamed)
-- AC-003-3: Interest accrues per block and is claimable at any time without closing the vouch
-- AC-003-4: The interest payment does not come from the vouched member's principal — it comes only from their yield earnings above the base rate
-- AC-003-5: If the vouched member's yield falls below the interest obligation (e.g., yield rates drop), the unpaid interest accrues and is settled from the payout differential when selection occurs
+- AC-003-1: The voucher earns interest expressed as an annualised rate applied to the **USDC-equivalent value** of the vouch: `interestPerSecond = convertToAssets(vouchShares) * interestRateBps / (10000 * 365 days)`. This is recalculated each accrual using the current share price — as the share price rises, so does the interest owed (since the locked capital is worth more).
+- AC-003-2: The interest rate (in basis points per year) is fixed at vouch creation time. The USDC-equivalent interest amount will vary with share price, but the rate is locked.
+- AC-003-3: Interest accrues per second (stored as `pendingInterestUsdc`) and is claimable at any time without closing the vouch
+- AC-003-4: Interest is paid by transferring shares from the vouched member's `sharesBalance` to the voucher's `sharesBalance` (equivalent USDC value). It comes from yield appreciation, not from principal shares.
+- AC-003-5: If the vouched member's yield appreciation is insufficient to cover accrued interest (e.g., yield rates collapse), unpaid interest accumulates and is settled from the payout differential shares when the vouched member is selected
 
 ### US-004 · Vouch Income — Payout Share
 **As a** voucher,
@@ -77,11 +88,11 @@ Two profiles benefit:
 **So that** I earn a meaningful return when my backing creates the most value.
 
 **Acceptance Criteria:**
-- AC-004-1: When the vouched member is selected for the pool payout, the voucher automatically receives a proportional share of the yield leverage premium
-- AC-004-2: The payout share is calculated as: `vouchAmount / totalCirclePosition * yieldLeveragePremium * agreedSplitRatio`
-- AC-004-3: The split ratio is agreed at vouch creation time and is visible to both parties
-- AC-004-4: The payout share is transferred automatically to the voucher's Savings Account at the moment of selection
-- AC-004-5: The vouched member retains the remaining yield leverage premium after the voucher's share is paid
+- AC-004-1: When the vouched member is selected, the voucher automatically receives a share of the yield leverage premium — the premium is `convertToAssets(payoutShares_now) - poolUsdc_at_selection` (see Spec 002 AC-002-4)
+- AC-004-2: Payout share in USDC-equivalent = `(convertToAssets(vouchShares) / convertToAssets(totalPositionShares)) * yieldLeveragePremium * agreedSplitRatio`; the corresponding number of shares is transferred from vouched member to voucher
+- AC-004-3: The split ratio (`agreedSplitRatio`) is set at vouch creation time and is immutable for the vouch duration
+- AC-004-4: Payout share is distributed as a share transfer at the moment the `onMemberSelected` callback fires — no separate claim transaction required
+- AC-004-5: The vouched member retains `(1 - agreedSplitRatio)` of the yield leverage premium in shares
 
 ### US-005 · Vouch Expiry and Renewal
 **As a** voucher,
@@ -121,7 +132,8 @@ Two profiles benefit:
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| OQ-001 | What is the interest rate structure for vouching? Fixed at protocol governance level, or set by market dynamics (voucher and vouched member negotiate)? Market dynamics maximise efficiency; governance floor prevents exploitation. | Protocol Economist | Open |
+| OQ-001 | What is the interest rate structure for vouching? Fixed at protocol governance level, or negotiated between voucher and vouched member? Market dynamics maximise efficiency; a governance floor prevents exploitation of vulnerable members. | Protocol Economist | Open |
 | OQ-002 | What is the default split ratio for payout share (voucher vs. vouched member)? 20/80 suggested as a starting point. | Product | Open |
-| OQ-003 | How does the privacy layer affect vouch discovery? If balances are shielded, how does the voucher verify the vouched member's balance and savings history without revealing it publicly? ZK proof of balance range may be required. | Protocol Architect | Open |
-| OQ-004 | What happens if the voucher's own balance falls below the diversification floor due to their own yield fluctuations? Does the vouch auto-reduce or does the voucher need to add capital? | Smart Contract Lead | Open |
+| OQ-003 | How does the privacy layer affect vouch discovery? If `sharesBalance` is shielded, how does the voucher verify the vouched member's savings history without revealing it publicly? ZK proof of shares-in-range may be required. | Protocol Architect | Open |
+| OQ-004 | ~~What happens if the voucher's balance falls below the diversification floor due to yield fluctuations?~~ **Partially resolved:** With share-based accounting, yield only *increases* `sharesBalance`. The 80% diversification floor can only be violated if the voucher *withdraws* capital. If they attempt a withdrawal that would push active vouches above 80% of remaining shares, the withdrawal is blocked with `VouchDiversificationFloorViolation`. | Smart Contract Lead | **Partially closed** |
+| OQ-005 | Interest in shares vs. USDC: AC-003-1 specifies interest is computed on the USDC-equivalent of the vouch and paid as a shares transfer. This means a rising share price increases the USDC interest owed each period. Is this the right incentive design, or should interest be a fixed shares-per-second rate? Fixed shares = voucher gets the same nominal interest regardless of price appreciation; USDC-equivalent = voucher's interest scales with the value they're backing. | Protocol Economist | Open |

@@ -1,17 +1,121 @@
 # Spec 004 — Yield Engine
 
 **Status:** Draft
-**Version:** 0.1
+**Version:** 0.2
 **Date:** February 2026
 **Depends on:** Spec 001 (Savings Account)
 
 ---
 
+## Changelog
+
+**v0.2 (February 2026):**
+- Added ERC4626 Meta-Vault architecture section — resolves OQ-003 and the Merkle-drop problem
+- Updated `harvest()` model: fee + buffer deducted, net yield stays in pool, share price appreciates automatically — no per-position distribution required
+- Updated CircleBuffer: now holds YieldRouter shares, earns yield passively (closes AC-004-4 ambiguity)
+- Closed OQ-003 (privacy layer / yield interaction — resolved by share price model)
+- Added OQ-A through OQ-E from architectural analysis with Luan
+
+---
+
 ## Overview
 
-The Yield Engine is the protocol component responsible for routing member deposits to yield-generating sources and returning the yield to member savings accounts. It operates automatically, requires no management by members, and is designed to continue functioning if any single yield source fails.
+The Yield Engine is the protocol component responsible for routing member deposits to yield-generating sources and returning yield to member positions. It operates automatically, requires no management by members, and is designed to continue functioning if any single yield source fails.
 
-The yield engine is a background infrastructure layer. Members never interact with it directly — they see only its output: their current APY and accrued yield in their Savings Account dashboard.
+**The YieldRouter is ERC4626-compliant internally.** It acts as a meta-vault aggregating yield across multiple adapters. The `SavingsAccount` stores member positions as *shares* in the YieldRouter — not as raw USDC amounts. Yield accrues through share price appreciation: as the pool earns yield, `totalAssets()` grows and every share is worth more USDC. No per-position yield credits are ever needed, and no Merkle-drop is required.
+
+The yield engine is a background infrastructure layer. Members never interact with it directly — they see only its output: their current APY and USDC-equivalent balance in their Savings Account dashboard.
+
+---
+
+## ERC4626 Architecture
+
+### Two-Layer Design
+
+```
+SavingsAccount (user-facing — stores sharesBalance internally, NOT ERC20-transferable)
+       │
+       │  deposit(usdc)   ──►  receives shares (internal accounting only)
+       │  withdraw(usdc)  ──►  redeems shares  (internal accounting only)
+       ▼
+YieldRouter [ERC4626 compliant — access restricted to SavingsAccount only]
+  - asset():          USDC
+  - totalAssets():    sum of all adapter balances + idle USDC in contract
+  - convertToShares() / convertToAssets() — share price accounting
+       │
+       ├── AaveAdapter    → Aave V3 Pool → aUSDC
+       └── OndoAdapter    → Ondo OUSG / Superstate (real-world yield)
+```
+
+This resolves the three tensions between ERC4626 and Mandinga's requirements:
+
+| Tension | Resolution |
+|---|---|
+| Shares are ERC20-transferable by default | `SavingsAccount` stores `sharesBalance` as a `uint256` — no ERC20 share token is ever issued to members |
+| `totalAssets()` exposes TVL | TVL is intentionally public for solvency verification; individual positions remain shielded in `SavingsAccount` |
+| ERC4626 has no `circleObligation` awareness | `SavingsAccount` stores `circleObligationShares` and enforces the lock before any share redemption |
+
+### Critical ERC4626 Overrides
+
+**`totalAssets()`** — aggregates all adapters:
+```solidity
+function totalAssets() public view override returns (uint256) {
+    uint256 total = IERC20(asset()).balanceOf(address(this)); // idle USDC
+    for (uint256 i = 0; i < activeAdapters.length; i++) {
+        total += IYieldSourceAdapter(activeAdapters[i]).getBalance();
+    }
+    return total;
+}
+```
+
+**`_deposit()`** — routes to adapters after receiving USDC:
+```solidity
+function _deposit(address caller, address receiver, uint256 assets, uint256 shares) internal override {
+    super._deposit(caller, receiver, assets, shares); // pulls USDC in, mints shares
+    _routeToAdapters(assets);
+    emit CapitalAllocated(assets, block.timestamp);
+}
+```
+
+**`_withdraw()`** — pulls from adapters before sending USDC out (waterfall):
+```solidity
+function _withdraw(address caller, address receiver, address owner, uint256 assets, uint256 shares) internal override {
+    _pullFromAdapters(assets);
+    super._withdraw(caller, receiver, owner, assets, shares); // burns shares, transfers USDC
+    emit CapitalWithdrawn(assets, block.timestamp);
+}
+```
+
+**Access restriction** — only `SavingsAccount` can call `deposit()`/`withdraw()`:
+```solidity
+modifier onlySavingsAccount() {
+    require(msg.sender == savingsAccount, "ONLY_SAVINGS_ACCOUNT");
+    _;
+}
+```
+
+### How Yield Distribution Works — Share Price Appreciation
+
+**Old model (v0.1):** `harvest()` → distribute yield to N positions → O(N) gas → Merkle-drop workaround required.
+
+**New model (v0.2):** `harvest()` → deduct fee and buffer → net yield stays in pool → `totalAssets()` grows → share price rises automatically → **zero gas per position.**
+
+```
+Day 0:  deposit 200 USDC → 200 shares minted (price = 1.000000)
+
+harvest() after 30 days:
+  gross yield collected = 0.80 USDC
+  fee (10%)             = 0.08 USDC → treasury (leaves pool)
+  buffer (5%)           = 0.04 USDC → CircleBuffer (leaves pool as shares)
+  net yield             = 0.68 USDC stays in pool
+
+totalAssets() = 200.68 USDC  |  shares outstanding = 200
+share price   = 200.68 / 200 = 1.0034
+
+Member balance = convertToAssets(200 shares) = 200.68 USDC  ← no explicit creditYield() needed
+```
+
+The `creditYield()` function is eliminated entirely from the protocol's design.
 
 ---
 
@@ -71,11 +175,11 @@ The Yield Engine abstracts all of this: it manages yield source allocation, reba
 **So that** a single member's temporary shortfall does not affect other members.
 
 **Acceptance Criteria:**
-- AC-004-1: A small portion of yield (configurable by governance, default: 5% of yield) is directed to a circle buffer reserve
-- AC-004-2: The buffer reserve covers the contribution of paused members during their grace period
-- AC-004-3: The buffer reserve is circle-specific — funds from one circle's reserve cannot be used to cover another circle
-- AC-004-4: The buffer reserve is yield-bearing while idle (it earns yield via the same yield engine)
-- AC-004-5: If the buffer reserve is insufficient to cover a paused member's contribution, the grace period shortfall is added to the paused member's `circleObligation` (to be repaid when they resume)
+- AC-004-1: 5% of gross yield (configurable by governance) is directed to the `CircleBuffer` contract at each `harvest()`
+- AC-004-2: The `CircleBuffer` deposits received USDC into the YieldRouter and holds the resulting **shares** — it earns yield passively via share price appreciation while idle (no separate yield mechanism needed)
+- AC-004-3: The buffer reserve is circle-specific — each circle's buffer holds its own `sharesBalance` in the CircleBuffer contract; cross-circle access is prohibited
+- AC-004-4: When a paused member's grace period slot is covered, shares are redeemed from the buffer at the current share price to obtain USDC
+- AC-004-5: If the buffer's redeemable USDC is insufficient to cover the paused slot, the shortfall is added to the paused member's `circleObligationShares` (to be settled on resume)
 
 ### US-005 · Protocol Fee
 **As a** protocol (to fund ongoing development and audits),
@@ -91,11 +195,12 @@ The Yield Engine abstracts all of this: it manages yield source allocation, reba
 
 ---
 
-## Out of Scope for This Spec
+## Out of Scope
 
-- Governance process for adjusting yield allocation parameters (covered in a future Governance spec)
-- Cross-chain yield routing (v1 is single-chain; cross-chain is future work)
-- Custom yield strategies for individual members (by design — the protocol abstracts yield management, not customises it)
+- Governance process for yield allocation parameters (future Governance spec)
+- Cross-chain yield routing (v1 is single-chain)
+- Custom yield strategies per member (by design)
+- Merkle-drop yield distribution (removed — share price appreciation replaces this entirely)
 
 ---
 
@@ -103,7 +208,12 @@ The Yield Engine abstracts all of this: it manages yield source allocation, reba
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| OQ-001 | Which specific real-world yield product do we integrate with first? Ondo OUSG and Superstate are the leading candidates. The choice affects the protocol entity's legal structure (who holds the KYC relationship). | Legal / Protocol Architect | Open |
-| OQ-002 | What is the target minimum APY we commit to members? Or do we not commit to a minimum and show only the current blended rate? | Product | Open |
-| OQ-003 | How does the yield engine interact with the privacy layer? If balances are shielded, how does the yield engine know how much to credit to each account without revealing balances on-chain? | Protocol Architect | Open |
-| OQ-004 | Is the 5% buffer reserve allocation correct? Too high and it reduces member yield; too low and circles become fragile. | Protocol Economist | Open |
+| OQ-001 | Which real-world yield product do we integrate with first? Ondo OUSG and Superstate are candidates. Choice affects the legal structure for the KYC relationship. | Legal / Architect | Open |
+| OQ-002 | What is the target minimum APY displayed to members? Or do we show only the current blended rate with no floor commitment? | Product | Open |
+| OQ-003 | ~~How does the yield engine interact with the privacy layer?~~ **Resolved:** Share price appreciation requires no per-position knowledge. `totalAssets()` is public for solvency verification; individual `sharesBalance` values remain shielded inside `SavingsAccount`. | Protocol Architect | **Closed** |
+| OQ-004 | Is 5% the right buffer rate? Too high reduces member APY; too low makes circles fragile under multiple simultaneous pauses. | Protocol Economist | Open |
+| OQ-A | Does the YieldRouter mint ERC20-transferable shares or use purely internal accounting? If ERC20 (for composability with future features), `transfer()` and `transferFrom()` must be overridden to revert unless `msg.sender == savingsAccount`. Recommend internal-only for v1. | Smart Contract Lead | Open |
+| OQ-B | How does the protocol handle an adapter exploit that causes `getBalance()` to collapse? All member share prices drop instantly. Is the 60% per-adapter allocation cap sufficient, or do we need an insurance fund / share price floor mechanism? | Protocol Architect | Open |
+| OQ-C | Does the CircleBuffer also hold shares in the YieldRouter? **Resolved in AC-004-2:** Yes. The buffer deposits USDC into the YieldRouter, holds the resulting shares, and earns yield passively. No dilution occurs because the buffer earns proportionally to its share count. | Protocol Architect | **Closed** |
+| OQ-D | Does `rebalance()` (moving capital between adapters) affect share price? It should not — `totalAssets()` remains constant during a rebalance (capital moves between adapters, not out of the pool). Confirm this in the implementation and add an invariant test. | Smart Contract Lead | Open |
+| OQ-E | Adapter decimal normalisation: all `getBalance()` return values must be normalised to 6 decimals (USDC) before being summed in `totalAssets()`. This must be enforced in the `IYieldSourceAdapter` interface spec. | Smart Contract Lead | Open |

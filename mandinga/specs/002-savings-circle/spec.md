@@ -1,9 +1,20 @@
 # Spec 002 — Savings Circle
 
 **Status:** Draft
-**Version:** 0.1
+**Version:** 0.2
 **Date:** February 2026
 **Depends on:** Spec 001 (Savings Account), Spec 004 (Yield Engine)
+
+---
+
+## Changelog
+
+**v0.2 (February 2026):**
+- Payout mechanic updated: the selected member receives **shares** (not USDC) converted from the pool USDC at the current share price. Their `circleObligationShares` increases by the same number of shares.
+- Yield leverage premium formula clarified: premium = `convertToAssets(payoutShares)` at time of withdrawal minus `poolUsdc` at time of selection — this is the yield earned on the payout, automatic via share price.
+- OQ-002 (yield leverage premium formula) partially resolved — see updated US-002.
+- OQ-003 (buffer reserve mechanism) resolved — buffer holds shares, covered in Spec 004 v0.2 AC-004-2.
+- Quota window (EARLY/MIDDLE/LATE) design from `cre-manding-circle` incorporated into US-004 as the preferred preference expression model.
 
 ---
 
@@ -49,11 +60,11 @@ The single failure mode of traditional ROSCAs (the organiser who can abscond, or
 **So that** I immediately begin earning yield on the larger amount.
 
 **Acceptance Criteria:**
-- AC-002-1: The full pool amount is transferred into the selected member's Savings Account at the start of the round
-- AC-002-2: The deposited amount is immediately yield-bearing at the full pool size
-- AC-002-3: The payout principal is set as the member's `circleObligation` — it cannot be withdrawn
-- AC-002-4: Only the yield earned on the payout principal (above what the member would have earned on their original balance) is the member's to keep as a yield leverage premium
-- AC-002-5: The member receives a clear notification of selection and a breakdown: pool received, new balance, obligation created, estimated yield leverage premium
+- AC-002-1: At selection, the circle calls `SavingsAccount.creditShares(shieldedId, payoutShares)` where `payoutShares = yieldRouter.convertToShares(poolUsdc)` — the pool USDC is converted to shares at the current share price and credited to the selected member's `sharesBalance`
+- AC-002-2: The credited shares immediately earn yield via share price appreciation — no separate `creditYield()` call is needed
+- AC-002-3: `circleObligationShares` is set equal to `payoutShares` — the selected member cannot redeem these shares until the obligation is settled over subsequent rounds
+- AC-002-4: The yield leverage premium is the **difference in USDC value** the selected member extracts compared to a member who never received the payout: `premium = convertToAssets(payoutShares_at_withdrawal) - poolUsdc_at_selection`. This grows automatically as share price rises.
+- AC-002-5: The member receives a clear notification showing: pool USDC equivalent at time of selection, shares credited, new total `sharesBalance`, USDC-equivalent obligation, and estimated premium (projected at current APY)
 - AC-002-6: A member can only receive the payout once per full rotation cycle
 
 ### US-003 · Automatic Obligation Settlement
@@ -62,11 +73,11 @@ The single failure mode of traditional ROSCAs (the organiser who can abscond, or
 **So that** I do not need to take manual action to honour my commitment.
 
 **Acceptance Criteria:**
-- AC-003-1: The obligation is automatically settled from the member's savings balance over the remaining rounds of the circle
-- AC-003-2: Settlement is triggered automatically at each round boundary — no manual transaction required
-- AC-003-3: If the member's balance falls below the obligation threshold, their participation is `PAUSED` (not terminated or slashed)
-- AC-003-4: Paused participation can be resumed when the member's balance is restored to the required threshold
-- AC-003-5: A paused member's position is preserved — they do not lose their rotation slot or their previously earned yield
+- AC-003-1: At each round boundary, the circle reduces the selected member's `circleObligationShares` by `roundObligationShares = payoutShares / remainingRounds` — this is the per-round settlement amount
+- AC-003-2: Settlement is triggered automatically when `executeRound()` is called (permissionless) — no manual transaction from the member
+- AC-003-3: If `sharesBalance < circleObligationShares` (detectable when a member's balance drops and share price alone won't recover it), participation is `PAUSED` — not terminated or slashed
+- AC-003-4: Paused participation resumes automatically once `sharesBalance >= circleObligationShares` is restored
+- AC-003-5: A paused member's position — including their accumulated share price appreciation — is fully preserved during the pause period
 
 ### US-004 · Fair Selection
 **As a** member,
@@ -74,11 +85,11 @@ The single failure mode of traditional ROSCAs (the organiser who can abscond, or
 **So that** the structural equality of the mechanism is maintained.
 
 **Acceptance Criteria:**
-- AC-004-1: Default selection uses Chainlink VRF or equivalent verifiable on-chain randomness
-- AC-004-2: The selection result is publicly verifiable (the randomness seed and derivation are on-chain)
-- AC-004-3: No member can purchase earlier selection through capital bids (no auction mechanic)
-- AC-004-4: The protocol may offer preference expression (members can signal preferred round, not guaranteed) — but expressed preferences cannot override random selection unless all members have expressed a preference and a conflict-free ordering exists
-- AC-004-5: Selection order over a full cycle ensures every member receives the payout exactly once
+- AC-004-1: Selection uses Chainlink VRF v2.5 (via the `DrawConsumer` contract from `cre-manding-circle`) — Fisher-Yates shuffle on the VRF random word produces a verifiable participant ordering
+- AC-004-2: The full draw order is stored on-chain via `DrawConsumer.getDrawOrder(requestId)` — any member can verify their selection outcome
+- AC-004-3: No member can purchase earlier selection through capital bids — the only preference mechanism is the quota window cohort (EARLY / MIDDLE / LATE), chosen at enrolment
+- AC-004-4: **Quota window cohorts (adopted from `cre-manding-circle`):** at enrolment, members choose which third of the cycle they prefer to be eligible (EARLY, MIDDLE, or LATE). Slots in each cohort are capped equally. Selection within each cohort is VRF-random. This gives preference agency without allowing capital to purchase timing — a member with $1 and a member with $10,000 have equal selection probability within the same cohort.
+- AC-004-5: Every member receives the payout exactly once per full rotation cycle, across all three cohort windows
 
 ### US-005 · Circle Completion
 **As a** member completing a full rotation cycle,
@@ -119,8 +130,8 @@ The single failure mode of traditional ROSCAs (the organiser who can abscond, or
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| OQ-001 | What is the minimum and maximum circle size (number of members)? 5–20 suggested, but data on optimal ROSCA size is worth reviewing. | Product | Open |
-| OQ-002 | How is the yield leverage premium calculated exactly? We need a formula that is simple enough for a member to verify. | Protocol Economist | Open |
-| OQ-003 | What is the buffer reserve mechanism for covering paused member contributions during the grace period? Is this funded from yield, from the protocol fee, or from a dedicated reserve? | Protocol Architect | Open |
-| OQ-004 | Do circles have fixed or variable contribution amounts? Fixed is simpler; variable allows circles to be sized to the full range of member balances. | Product | Open |
-| OQ-005 | What happens if more than one member is paused simultaneously? Is there a maximum pause tolerance before the circle restructures? | Protocol Architect | Open |
+| OQ-001 | What is the minimum and maximum circle size (number of members)? The `cre-manding-circle` uses 3-member circles in tests; 9–12 suggested for production. | Product | Open |
+| OQ-002 | ~~How is the yield leverage premium calculated?~~ **Partially resolved in AC-002-4:** `premium = convertToAssets(payoutShares_at_withdrawal) - poolUsdc_at_selection`. This is exact and member-verifiable from on-chain state. The open sub-question: do we show a *projected* premium at selection time, and if so, at what APY assumption? | Protocol Economist | **Partially closed** |
+| OQ-003 | ~~Buffer reserve mechanism?~~ **Resolved in Spec 004 v0.2 AC-004-2:** Buffer holds YieldRouter shares, earns yield passively. Covered contributions are paid by redeeming buffer shares at current share price. | Protocol Architect | **Closed** |
+| OQ-004 | Do circles have fixed or variable contribution amounts per member? Fixed is simpler and matches the `cre-manding-circle` implementation. Variable (balances differ per member) adds complexity but allows better tier matching. Recommend fixed for v1. | Product | Open |
+| OQ-005 | Maximum simultaneous pauses before circle restructures? The buffer reserve covers one paused member per round cleanly. Two or more paused members simultaneously require a larger buffer or a restructuring mechanism. Needs protocol economist input. | Protocol Architect | Open |
