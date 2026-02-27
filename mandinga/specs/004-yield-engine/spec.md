@@ -9,6 +9,10 @@
 
 ## Changelog
 
+**v0.3 (February 2026):**
+- **Updated US-004 (CircleBuffer):** removed stale references to "paused members" and "grace period" — these mechanics were eliminated in Spec 002 v0.3. The CircleBuffer's sole remaining purpose is **yield smoothing**: absorbing yield variance across harvest cycles so members experience a stable reported APY. Round coverage (covering missed `D` contributions mid-circle) is now handled entirely by the Solidarity Pool (Spec 003) — the CircleBuffer plays no role in it.
+- Updated OQ-004: rephrased to reflect yield-smoothing-only purpose.
+
 **v0.2 (February 2026):**
 - Added ERC4626 Meta-Vault architecture section — resolves OQ-003 and the Merkle-drop problem
 - Updated `harvest()` model: fee + buffer deducted, net yield stays in pool, share price appreciates automatically — no per-position distribution required
@@ -171,15 +175,17 @@ The Yield Engine abstracts all of this: it manages yield source allocation, reba
 
 ### US-004 · Yield Reserve for Circle Buffer
 **As a** circle participant,
-**I need** the circle to continue functioning during a member's grace period,
-**So that** a single member's temporary shortfall does not affect other members.
+**I need** yield reporting to be stable across harvest cycles,
+**So that** short-term yield variance does not create a confusing or misleading APY display.
+
+**Note:** The CircleBuffer no longer handles missed round contributions or member defaults. That function is now owned by the Solidarity Pool (Spec 003). The CircleBuffer's sole remaining purpose is yield smoothing — absorbing harvest variance to present members with a stable reported APY.
 
 **Acceptance Criteria:**
 - AC-004-1: 5% of gross yield (configurable by governance) is directed to the `CircleBuffer` contract at each `harvest()`
-- AC-004-2: The `CircleBuffer` deposits received USDC into the YieldRouter and holds the resulting **shares** — it earns yield passively via share price appreciation while idle (no separate yield mechanism needed)
-- AC-004-3: The buffer reserve is circle-specific — each circle's buffer holds its own `sharesBalance` in the CircleBuffer contract; cross-circle access is prohibited
-- AC-004-4: When a paused member's grace period slot is covered, shares are redeemed from the buffer at the current share price to obtain USDC
-- AC-004-5: If the buffer's redeemable USDC is insufficient to cover the paused slot, the shortfall is added to the paused member's `circleObligationShares` (to be settled on resume)
+- AC-004-2: The `CircleBuffer` deposits received USDC into the YieldRouter and holds the resulting **shares** — it earns yield passively via share price appreciation while idle
+- AC-004-3: The buffer is protocol-global (not circle-specific) — its only role is smoothing reported yield, not covering per-circle obligations
+- AC-004-4: In a harvest cycle where yield is below the trailing average, the buffer supplements the reported APY to reduce visible variance. In a cycle where yield exceeds the trailing average, the excess is directed to the buffer.
+- AC-004-5: The buffer does not cover missed round contributions — that is entirely the Solidarity Pool's responsibility (Spec 003 US-004).
 
 ### US-005 · Protocol Fee
 **As a** protocol (to fund ongoing development and audits),
@@ -211,7 +217,7 @@ The Yield Engine abstracts all of this: it manages yield source allocation, reba
 | OQ-001 | Which real-world yield product do we integrate with first? Ondo OUSG and Superstate are candidates. Choice affects the legal structure for the KYC relationship. | Legal / Architect | Open |
 | OQ-002 | What is the target minimum APY displayed to members? Or do we show only the current blended rate with no floor commitment? | Product | Open |
 | OQ-003 | ~~How does the yield engine interact with the privacy layer?~~ **Resolved:** Share price appreciation requires no per-position knowledge. `totalAssets()` is public for solvency verification; individual `sharesBalance` values remain shielded inside `SavingsAccount`. | Protocol Architect | **Closed** |
-| OQ-004 | Is 5% the right buffer rate? Too high reduces member APY; too low makes circles fragile under multiple simultaneous pauses. | Protocol Economist | Open |
+| OQ-004 | Is 5% the right buffer rate for yield smoothing? Too high reduces member net APY; too low means the buffer cannot absorb meaningful harvest variance. The right rate is now decoupled from circle continuity concerns (that is the Solidarity Pool's problem) — it is purely a yield-display quality tradeoff. | Protocol Economist | Open |
 | OQ-A | Does the YieldRouter mint ERC20-transferable shares or use purely internal accounting? If ERC20 (for composability with future features), `transfer()` and `transferFrom()` must be overridden to revert unless `msg.sender == savingsAccount`. Recommend internal-only for v1. | Smart Contract Lead | Open |
 | OQ-B | How does the protocol handle an adapter exploit that causes `getBalance()` to collapse? All member share prices drop instantly. Is the 60% per-adapter allocation cap sufficient, or do we need an insurance fund / share price floor mechanism? | Protocol Architect | Open |
 | OQ-C | Does the CircleBuffer also hold shares in the YieldRouter? **Resolved in AC-004-2:** Yes. The buffer deposits USDC into the YieldRouter, holds the resulting shares, and earns yield passively. No dilution occurs because the buffer earns proportionally to its share count. | Protocol Architect | **Closed** |

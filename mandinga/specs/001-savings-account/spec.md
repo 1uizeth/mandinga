@@ -1,13 +1,19 @@
 # Spec 001 — Savings Account
 
 **Status:** Draft
-**Version:** 0.2
+**Version:** 0.3
 **Date:** February 2026
 **Depends on:** Spec 004 (Yield Engine — YieldRouter must be deployed first)
 
 ---
 
 ## Changelog
+
+**v0.3 (February 2026):**
+- **Updated Position struct:** `vouchActive` removed — the bilateral vouching model is replaced by the Solidarity Pool (Spec 003 v0.3). Added `solidarityDebtShares` — tracks the shares owed to the Solidarity Pool for any advances received (entry gap coverage or missed round coverage).
+- **Clarified `circleObligationShares` semantics:** pre-selection, `circleObligationShares` represents the cumulative round obligations already settled to other selected members (what has been transferred out). Post-selection, it represents the locked payout that will be released round by round over the remaining circle. The invariant `sharesBalance >= circleObligationShares` holds across both phases.
+- **Pre-selection principal lock lightened:** a member no longer needs to lock the full `circleAllocation` upfront at entry. The principal lock before selection enforces only that the member cannot withdraw below their ability to cover `D` per round — or, if below that threshold, the Solidarity Pool steps in. The full lock applies post-selection when the payout is credited.
+- **Out of scope updated:** references to vouching mechanics replaced with Solidarity Pool mechanics.
 
 **v0.2 (February 2026):**
 - **Closed OQ-002:** SavingsAccount is NOT ERC-4626 externally. Internally it stores `sharesBalance` and `circleObligationShares` — share positions in the YieldRouter (which IS ERC-4626). No ERC20 share token is issued to members.
@@ -34,11 +40,17 @@ The Savings Account does two jobs:
 struct Position {
     // sharesBalance is NOT stored — read from yieldRouter.balanceOf(address(this)) at runtime
     uint256 circleObligationShares;  // minimum shares that cannot be redeemed (stored internally)
+    uint256 solidarityDebtShares;    // shares owed to Solidarity Pool (entry gap + covered rounds)
     uint256 lastYieldUpdate;         // retained for event/display purposes
     bool circleActive;
-    bool vouchActive;
 }
 ```
+
+**`circleObligationShares` two-phase semantics:**
+- **Pre-selection:** represents cumulative round obligations already settled to other selected members. Increases by `roundObligationShares` each round until the member is selected. Enforces that the member cannot withdraw below their ongoing contribution commitment.
+- **Post-selection:** set to `payoutShares - solidarityDebtShares` at selection (net locked payout). Decreases each round as the obligation is mechanically released. No active contributions required from the member post-selection.
+
+**`solidarityDebtShares`:** shares owed to the Solidarity Pool for any advances received. Set at entry (if pool-backstopped) and incremented each solidarity-covered round. Cleared atomically at selection (Spec 003 AC-005-4).
 
 `sharesBalance` is derived at runtime via `yieldRouter.balanceOf(address(this))`. The YieldRouter is the single source of truth for share balances — no internal mirror is maintained.
 
@@ -139,7 +151,7 @@ People with small balances earn yield on small balances. The compounding advanta
 
 - Yield routing logic (covered in Spec 004 — Yield Engine)
 - Circle participation mechanics (covered in Spec 002 — Savings Circle)
-- Vouching mechanics (covered in Spec 003 — Solidarity Market)
+- Solidarity Pool mechanics (covered in Spec 003 — Solidarity Pool)
 - Multi-asset support beyond dollar-stable assets (future consideration)
 - Native token support without stable bridge (excluded by design — we do not expose members to speculative asset volatility)
 
