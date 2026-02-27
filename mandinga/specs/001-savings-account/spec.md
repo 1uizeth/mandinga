@@ -74,6 +74,10 @@ The Savings Account can be used entirely standalone. A member who never activate
 
 ## Clarifications
 
+### Session 2026-02-27
+
+- Q: Which privacy layer is used in v1? → A: None. Privacy layer deferred to v2. `shieldedId` is derived as `keccak256(abi.encodePacked(msg.sender, nonce))` for pseudonymity and migration-path compatibility. All Position struct fields remain plaintext `uint256` in v1.
+
 ### Session 2026-02-26
 
 - Q: How does `SavingsAccount` track its share balance in the YieldRouter? → A: Read from `yieldRouter.balanceOf(address(this))` at runtime — YieldRouter is the ledger, no internal mirror.
@@ -161,7 +165,7 @@ People with small balances earn yield on small balances. The compounding advanta
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| OQ-001 | Which privacy layer do we use? (Aztec, zkSync private state, or custom ZK circuit?) The answer changes how `sharesBalance` is stored and read. | Protocol Architect | Open |
+| OQ-001 | Which privacy layer do we use? | Protocol Architect | **Resolved — Deferred to v2.** v1 stores `circleObligationShares` and `solidarityDebtShares` as plaintext `uint256`. Identity is pseudonymous via `shieldedId = keccak256(abi.encodePacked(msg.sender, nonce))`. See `constitution.md` §2.3 and Spec 005 for the v2 migration plan. |
 | OQ-002 | ~~Is the receipt token ERC-4626 compliant?~~ **Resolved:** SavingsAccount is NOT ERC-4626 externally. It stores `sharesBalance` (a `uint256`) from the YieldRouter, which IS ERC-4626 internally. No ERC20 share token is issued to members. The position is non-transferable by design. | Smart Contract Lead | **Closed** |
 | OQ-003 | Minimum deposit: $1 USDS is proposed to prevent dust. Is this the right floor? Should it be configurable by governance? | Product | Open |
 | OQ-004 | ~~Do we support multiple dollar-stable assets?~~ **Resolved:** USDS only at launch. Multi-stable support deferred to a future governance upgrade. | Product | **Closed** |

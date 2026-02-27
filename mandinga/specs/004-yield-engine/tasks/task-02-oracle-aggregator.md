@@ -1,11 +1,17 @@
 # Task 004-02 — Implement OracleAggregator
 
 **Spec:** 004 — Yield Engine
-**Milestone:** 1
-**Status:** Ready
-**Estimated effort:** 4 hours
+**Milestone:** 1 → **Deferred to v2**
+**Status:** Deferred — see decision record below
+**Estimated effort:** 4 hours (when re-activated)
 **Dependencies:** Task 004-01 (IYieldRouter interface)
-**Parallel-safe:** Yes (no runtime dependency on 004-01, just conceptual context)
+**Parallel-safe:** Yes
+
+---
+
+## Decision Record
+
+**February 2026:** `OracleAggregator` deferred to v2. With a single yield source (Aave V3 only in v1), multi-source rate aggregation and median-based circuit breaking are not needed. v1 reads Aave's supply rate directly from `IPoolDataProvider.getReserveData()`. See research.md Decision 10 and Spec 004 v0.4 changelog.
 
 ---
 

@@ -26,7 +26,7 @@ See: Spec 001 all user stories, plan.md §3.1.
 ## Acceptance Criteria
 
 ### Contract Implementation
-- [ ] Contract at `contracts/core/SavingsAccount.sol` implementing `ISavingsAccount`
+- [ ] Contract at `backend/contracts/core/SavingsAccount.sol` implementing `ISavingsAccount`
 - [ ] Constructor takes: `IYieldRouter yieldRouter`, `address emergencyModule`, `address savingsCircle`, `address stablecoin`
 - [ ] `deposit(uint256 amount)`:
   - Transfers USDC from caller to contract
@@ -65,7 +65,7 @@ See: Spec 001 all user stories, plan.md §3.1.
 - [ ] Add invariant check `assert(positions[id].balance >= positions[id].circleObligation)` as an internal guard on every state-modifying function (can be removed in production build after formal verification, but required for testnet)
 
 ### Tests
-- [ ] Unit tests at `test/unit/SavingsAccount.test.ts`:
+- [ ] Unit tests at `test/unit/SavingsAccount.t.sol` (Forge):
   - Deposit → balance reflects deposit
   - Withdraw free balance → succeeds
   - Withdraw locked balance → reverts with `InsufficientWithdrawableBalance`
@@ -73,25 +73,24 @@ See: Spec 001 all user stories, plan.md §3.1.
   - `setCircleObligation` by non-SavingsCircle → reverts with `NotAuthorized`
   - Emergency: `activateEmergency` → `emergencyWithdraw` returns full balance including locked
   - Emergency: `activateEmergency` by non-module → reverts
-  - Yield crediting: `creditYield` increases balance and `yieldEarnedTotal`
   - Reentrancy: attempt reentrant withdrawal → reverts
 
-- [ ] Fuzz test at `test/invariant/balance_invariants.test.ts`:
-  - Random sequence of deposits, withdrawals, obligation sets, and yield credits
-  - After each operation: assert `balance >= circleObligation` for all positions
+- [ ] Invariant/fuzz test at `test/invariant/BalanceInvariants.t.sol` (Foundry invariant testing):
+  - Random sequence of deposits, withdrawals, obligation sets
+  - Invariant function: assert `sharesBalance >= circleObligationShares` for all positions after every call
 
 ---
 
 ## Output Files
 
-- `contracts/core/SavingsAccount.sol`
-- `test/unit/SavingsAccount.test.ts`
-- `test/invariant/balance_invariants.test.ts`
+- `backend/contracts/core/SavingsAccount.sol`
+- `backend/test/unit/SavingsAccount.t.sol`
+- `backend/test/invariant/BalanceInvariants.t.sol`
 
 ---
 
 ## Notes
 
-- The `shieldedId` computed from `msg.sender` in v1 is a simplification. In the privacy layer migration (future work), `shieldedId` will be a ZK commitment that does not reveal the member's address. Design the contract to make this swap easy: use `bytes32 shieldedId` consistently throughout, never `address`.
-- Do not store the raw `msg.sender` address anywhere in the position state — only the derived `shieldedId`. This preserves the migration path to full privacy.
+- `shieldedId` is derived as `keccak256(abi.encodePacked(msg.sender, nonce))` in v1. Never store raw `msg.sender` in position state — only the derived `shieldedId`. This preserves the v2 migration path to commitment-based identity without breaking interface changes.
+- In v2, `shieldedId` will be a ZK or FHE commitment that does not reveal the member's address; the `bytes32` type is intentionally forward-compatible.
 - The `yieldRouter.withdraw()` call in the withdraw flow must come AFTER the balance check and BEFORE the USDC transfer (checks-effects-interactions).

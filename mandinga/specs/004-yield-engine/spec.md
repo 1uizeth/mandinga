@@ -1,13 +1,22 @@
 # Spec 004 — Yield Engine
 
 **Status:** Draft
-**Version:** 0.2
+**Version:** 0.4
 **Date:** February 2026
 **Depends on:** Spec 001 (Savings Account)
 
 ---
 
 ## Changelog
+
+**v0.4 (February 2026):**
+- **Yield source scoped to Aave V3 only for v1.** `OndoAdapter` (real-world yield) and `OracleAggregator` deferred to v2. Rationale: real-world yield sources require KYC legal structure out of scope for v1. See research.md Decision 10.
+- **US-002 (Real-World Yield Sources) deferred to v2.**
+- **US-003 (Oracle Integration) simplified:** no multi-source median; circuit breaker reads Aave utilization/liquidity directly.
+- **US-001 AC-001-2 updated:** single yield source (Aave V3) in v1; multi-source requirement deferred to v2.
+- **OQ-001 closed:** Aave V3 only for v1.
+- **OQ-D closed:** no `rebalance()` function in v1 (single adapter).
+- **YieldRouter simplified:** no `allocationWeights`, no `rebalance()`, direct deposit to AaveAdapter.
 
 **v0.3 (February 2026):**
 - **Updated US-004 (CircleBuffer):** removed stale references to "paused members" and "grace period" — these mechanics were eliminated in Spec 002 v0.3. The CircleBuffer's sole remaining purpose is **yield smoothing**: absorbing yield variance across harvest cycles so members experience a stable reported APY. Round coverage (covering missed `D` contributions mid-circle) is now handled entirely by the Solidarity Pool (Spec 003) — the CircleBuffer plays no role in it.
@@ -26,7 +35,9 @@
 
 The Yield Engine is the protocol component responsible for routing member deposits to yield-generating sources and returning yield to member positions. It operates automatically, requires no management by members, and is designed to continue functioning if any single yield source fails.
 
-**The YieldRouter is ERC4626-compliant internally.** It acts as a meta-vault aggregating yield across multiple adapters. The `SavingsAccount` stores member positions as *shares* in the YieldRouter — not as raw USDC amounts. Yield accrues through share price appreciation: as the pool earns yield, `totalAssets()` grows and every share is worth more USDC. No per-position yield credits are ever needed, and no Merkle-drop is required.
+**The YieldRouter is ERC4626-compliant internally.** It acts as a meta-vault routing yield through a single adapter (Aave V3 in v1). The `SavingsAccount` stores member positions as *shares* in the YieldRouter — not as raw USDC amounts. Yield accrues through share price appreciation: as the pool earns yield, `totalAssets()` grows and every share is worth more USDC. No per-position yield credits are ever needed, and no Merkle-drop is required.
+
+**v1 yield source: Aave V3 only.** Multi-source routing (Ondo/Superstate) is deferred to v2. The adapter pattern (`IYieldSourceAdapter`) is retained so v2 can add adapters without changing the YieldRouter interface.
 
 The yield engine is a background infrastructure layer. Members never interact with it directly — they see only its output: their current APY and USDC-equivalent balance in their Savings Account dashboard.
 
@@ -47,8 +58,7 @@ YieldRouter [ERC4626 compliant — access restricted to SavingsAccount only]
   - totalAssets():    sum of all adapter balances + idle USDC in contract
   - convertToShares() / convertToAssets() — share price accounting
        │
-       ├── AaveAdapter    → Aave V3 Pool → aUSDC
-       └── OndoAdapter    → Ondo OUSG / Superstate (real-world yield)
+       └── AaveAdapter    → Aave V3 Pool → aUSDC  (sole adapter in v1)
 ```
 
 This resolves the three tensions between ERC4626 and Mandinga's requirements:
@@ -139,39 +149,42 @@ The Yield Engine abstracts all of this: it manages yield source allocation, reba
 
 ### US-001 · Automatic Yield Routing
 **As a** member with a savings account,
-**I want** my deposited balance to automatically earn yield from real-world sources,
+**I want** my deposited balance to automatically earn yield,
 **So that** I benefit from competitive rates without managing anything.
 
 **Acceptance Criteria:**
-- AC-001-1: Deposits are allocated to yield sources within 1 block of confirmation
-- AC-001-2: The yield engine allocates across at minimum 2 yield sources to prevent single-source dependency
-- AC-001-3: Allocation logic is deterministic and publicly auditable (the allocation algorithm is open source and verifiable)
-- AC-001-4: The effective APY is shown to members in real time as a blended rate across all active sources
+- AC-001-1: Deposits are routed to the yield source (Aave V3) within 1 block of confirmation
+- AC-001-2: ~~At minimum 2 yield sources~~ **v1: single yield source (Aave V3)**. Multi-source routing deferred to v2. The adapter interface (`IYieldSourceAdapter`) is retained so v2 can add sources without interface changes.
+- AC-001-3: Allocation logic is deterministic and publicly auditable
+- AC-001-4: The effective APY (Aave V3 USDC supply rate) is shown to members in real time
 - AC-001-5: No member action is required to begin earning yield — it is automatic on deposit
 
-### US-002 · Real-World Yield Sources
-**As a** member,
-**I want** yield to come from stable, real-world sources (not purely crypto-native),
-**So that** my yield is not correlated with crypto market cycles.
+### US-002 · Real-World Yield Sources — **Deferred to v2**
+
+**Status:** Deferred. Real-world yield (Ondo OUSG, Superstate) requires a KYC relationship at the protocol entity level and associated legal structure work. This is out of scope for v1.
+
+**v1 yield source:** Aave V3 USDC supply — DeFi-native, permissionless, no KYC.
+
+**v2 target:** Add `OndoAdapter` or equivalent once legal and compliance structure is in place. The `IYieldSourceAdapter` interface and YieldRouter adapter registry are designed to accommodate new sources without breaking the ERC4626 surface.
+
+_(Original acceptance criteria preserved below for v2 reference)_
+
+- ~~AC-002-1: Tokenised money market fund integration (Ondo OUSG, Superstate)~~ → v2
+- ~~AC-002-2: KYC abstracted at protocol layer~~ → v2
+- ~~AC-002-3: DeFi fallback (Aave/Compound)~~ → v1 has Aave only, this is the primary source
+- ~~AC-002-4: Configurable allocation ratio real-world/DeFi~~ → v2
+- AC-002-5: Identity of all active yield sources publicly disclosed on-chain → **retained for v1** (Aave V3 pool address publicly visible)
+
+### US-003 · Oracle / Circuit Breaker — Simplified for v1
+
+**Context:** With a single yield source (Aave V3), multi-source oracle aggregation (`OracleAggregator`) is not needed. v1 reads the Aave USDC supply rate directly from Aave's `IPoolDataProvider`. The circuit breaker monitors Aave's available liquidity.
 
 **Acceptance Criteria:**
-- AC-002-1: The protocol integrates with at minimum one tokenised money market fund or treasury product (e.g., Ondo OUSG, Superstate, or equivalent) for real-world yield exposure
-- AC-002-2: Access to KYC-gated real-world yield sources is abstracted at the protocol layer — individual members do not KYC; the protocol entity holds the institutional relationship
-- AC-002-3: The protocol also integrates with established DeFi savings protocols (Aave, Compound, or equivalent) as a supplementary source and fallback
-- AC-002-4: The allocation between real-world and DeFi sources is governed by a target ratio (e.g., 70% real-world / 30% DeFi) configurable by governance within hard bounds
-- AC-002-5: The identity of all active yield sources is publicly disclosed on-chain
-
-### US-003 · Oracle Integration
-**As a** protocol administrator,
-**I want** yield rate data from external sources to be manipulation-resistant,
-**So that** the protocol cannot be exploited through oracle manipulation.
-
-**Acceptance Criteria:**
-- AC-003-1: All real-world rate data is sourced from Chainlink Data Feeds or equivalent decentralised oracle networks
-- AC-003-2: The protocol uses a minimum of 2 independent oracle sources for any rate used in allocation decisions
-- AC-003-3: If oracle data is stale (> 1 hour since last update), the protocol switches to a conservative fallback rate rather than using stale data
-- AC-003-4: Oracle manipulation attempts (rate deviations > 20% from the median of active sources) trigger a circuit breaker that pauses rebalancing until the deviation resolves
-- AC-003-5: The circuit breaker does not pause withdrawals — members can always exit even during an oracle anomaly
+- AC-003-1: Current APY is read directly from Aave V3 `IPoolDataProvider.getReserveData()` — no external oracle required for v1
+- AC-003-2: ~~Minimum 2 independent oracle sources~~ → deferred to v2 (multi-source context)
+- AC-003-3: If Aave data is stale or unavailable, display the last known APY with a "stale" indicator; do not block deposits or withdrawals
+- AC-003-4: Circuit breaker: if Aave's available USDC liquidity falls below a configurable threshold (governance-set, default: sufficient for 10% of TVL withdrawal in one transaction), `harvest()` is paused until liquidity recovers; deposits and withdrawals remain available
+- AC-003-5: The circuit breaker **never** pauses withdrawals — members can always exit
 
 ### US-004 · Yield Reserve for Circle Buffer
 **As a** circle participant,
@@ -207,6 +220,9 @@ The Yield Engine abstracts all of this: it manages yield source allocation, reba
 - Cross-chain yield routing (v1 is single-chain)
 - Custom yield strategies per member (by design)
 - Merkle-drop yield distribution (removed — share price appreciation replaces this entirely)
+- Real-world yield sources (Ondo/Superstate) — deferred to v2
+- Multi-source oracle aggregation (`OracleAggregator`) — deferred to v2
+- `rebalance()` function — not needed with single adapter in v1
 
 ---
 
@@ -214,12 +230,12 @@ The Yield Engine abstracts all of this: it manages yield source allocation, reba
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| OQ-001 | Which real-world yield product do we integrate with first? Ondo OUSG and Superstate are candidates. Choice affects the legal structure for the KYC relationship. | Legal / Architect | Open |
-| OQ-002 | What is the target minimum APY displayed to members? Or do we show only the current blended rate with no floor commitment? | Product | Open |
-| OQ-003 | ~~How does the yield engine interact with the privacy layer?~~ **Resolved:** Share price appreciation requires no per-position knowledge. `totalAssets()` is public for solvency verification; individual `sharesBalance` values remain shielded inside `SavingsAccount`. | Protocol Architect | **Closed** |
-| OQ-004 | Is 5% the right buffer rate for yield smoothing? Too high reduces member net APY; too low means the buffer cannot absorb meaningful harvest variance. The right rate is now decoupled from circle continuity concerns (that is the Solidarity Pool's problem) — it is purely a yield-display quality tradeoff. | Protocol Economist | Open |
-| OQ-A | Does the YieldRouter mint ERC20-transferable shares or use purely internal accounting? If ERC20 (for composability with future features), `transfer()` and `transferFrom()` must be overridden to revert unless `msg.sender == savingsAccount`. Recommend internal-only for v1. | Smart Contract Lead | Open |
-| OQ-B | How does the protocol handle an adapter exploit that causes `getBalance()` to collapse? All member share prices drop instantly. Is the 60% per-adapter allocation cap sufficient, or do we need an insurance fund / share price floor mechanism? | Protocol Architect | Open |
-| OQ-C | Does the CircleBuffer also hold shares in the YieldRouter? **Resolved in AC-004-2:** Yes. The buffer deposits USDC into the YieldRouter, holds the resulting shares, and earns yield passively. No dilution occurs because the buffer earns proportionally to its share count. | Protocol Architect | **Closed** |
-| OQ-D | Does `rebalance()` (moving capital between adapters) affect share price? It should not — `totalAssets()` remains constant during a rebalance (capital moves between adapters, not out of the pool). Confirm this in the implementation and add an invariant test. | Smart Contract Lead | Open |
-| OQ-E | Adapter decimal normalisation: all `getBalance()` return values must be normalised to 6 decimals (USDC) before being summed in `totalAssets()`. This must be enforced in the `IYieldSourceAdapter` interface spec. | Smart Contract Lead | Open |
+| OQ-001 | Which real-world yield product do we integrate with first? | Legal / Architect | **Resolved — Deferred to v2.** v1 uses Aave V3 only. |
+| OQ-002 | What is the target minimum APY displayed to members? | Product | Open |
+| OQ-003 | ~~How does the yield engine interact with the privacy layer?~~ **Resolved:** Share price appreciation requires no per-position knowledge. | Protocol Architect | **Closed** |
+| OQ-004 | Is 5% the right buffer rate for yield smoothing? | Protocol Economist | Open |
+| OQ-A | Does the YieldRouter mint ERC20-transferable shares or use purely internal accounting? Recommend internal-only for v1. | Smart Contract Lead | Open |
+| OQ-B | How does the protocol handle an Aave exploit that causes `getBalance()` to collapse? Single adapter means full exposure — no allocation cap mitigates this in v1. Does the protocol need a share price floor mechanism? | Protocol Architect | Open |
+| OQ-C | Does the CircleBuffer also hold shares in the YieldRouter? **Resolved in AC-004-2:** Yes. | Protocol Architect | **Closed** |
+| OQ-D | Does `rebalance()` affect share price? | Smart Contract Lead | **Resolved — Closed.** `rebalance()` removed from v1 (single adapter). |
+| OQ-E | Adapter decimal normalisation: `getBalance()` must return 6 decimals (USDC). Enforced in `IYieldSourceAdapter`. | Smart Contract Lead | Open |

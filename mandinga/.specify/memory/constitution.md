@@ -1,14 +1,16 @@
 # Mandinga Protocol — Constitution
 
-> The immutable architectural DNA of Mandinga Protocol. Every specification, plan, and task must align with these principles. When in doubt, return to this document.
+> The architectural DNA of Mandinga Protocol. Every specification, plan, and task must align with these principles. When in doubt, return to this document.
+>
+> **Last updated:** February 2026 — §2.3 revised: privacy layer deferred to v2. See decision rationale in §2.3.
 
 ---
 
 ## 1. What We Are Building
 
-Mandinga Protocol is a **solidarity savings primitive** — a self-custodial, privacy-first protocol that gives anyone on Earth access to the compounding advantage of lump-sum capital, without a bank account, without KYC, and without surrendering custody of funds.
+Mandinga Protocol is a **solidarity savings primitive** — a self-custodial protocol that gives anyone on Earth access to the compounding advantage of lump-sum capital, without a bank account, without KYC, and without surrendering custody of funds.
 
-It encodes the logic of the rotating savings and credit association (ROSCA) — the most widely used community savings mechanism in human history — into immutable, permissionless smart contracts on Ethereum, with a privacy layer that protects member balances, contribution history, and circle membership from public exposure.
+It encodes the logic of the rotating savings and credit association (ROSCA) — the most widely used community savings mechanism in human history — into immutable, permissionless smart contracts on Ethereum.
 
 **Mandinga Protocol is not:**
 - A stablecoin
@@ -23,9 +25,9 @@ It encodes the logic of the rotating savings and credit association (ROSCA) — 
 
 ---
 
-## 2. The Five Non-Negotiable Principles
+## 2. The Core Principles
 
-These principles cannot be relaxed, traded off, or deferred to a later version. Any design that violates them is architecturally wrong, regardless of its other merits.
+Principles §2.1, §2.2, §2.4, and §2.5 are non-negotiable and cannot be relaxed, traded off, or deferred. §2.3 has been revised to a roadmap commitment (see rationale below).
 
 ### 2.1 No Organiser — Ever
 
@@ -39,11 +41,18 @@ The protocol enforces correct behaviour through incentive design and contract me
 
 **Implication:** The principal lock mechanism — where a member's savings balance must always meet or exceed their outstanding circle obligation — is the enforcement layer. There is no default risk because there is no unsecured obligation. Enforcement is in the architecture, not in surveillance.
 
-### 2.3 Privacy by Default
+### 2.3 Privacy as a Roadmap Commitment (deferred to v2)
 
-Member balances, contribution history, circle membership, and selection outcomes must be shielded from the public ledger. Only cryptographic proofs of valid participation are visible on-chain.
+**Decision (February 2026):** The privacy layer is deferred to v2. v1 deploys without on-chain balance or membership shielding. Member balances and circle participation are visible on the public ledger in v1.
 
-**Implication:** The protocol requires a privacy layer (e.g., Aztec, zkSync with private state, or equivalent ZK-based privacy infrastructure). No feature may be designed that requires revealing member identity or balance to the public chain or to other members.
+**Rationale:** ZK circuit toolchains (Circom, Noir) and FHE-enabled execution environments (fhEVM, CoFHE) are not yet sufficiently mature for the complexity required by this protocol's mechanics. Premature commitment to a specific privacy stack increases implementation cost, audit surface, and deployment risk without delivering user value in the near term.
+
+**What is preserved for the v2 migration path:**
+- All contracts use `bytes32 shieldedId` (derived as `keccak256(abi.encodePacked(msg.sender, nonce))`) rather than raw `address` in state and interfaces. This allows a future migration to commitment-based identity without breaking changes.
+- The `shieldedId` abstraction provides pseudonymity at v1 — an observer cannot trivially link on-chain positions to identities without the nonce.
+- No feature may be designed that structurally prevents the addition of a privacy layer in v2.
+
+**v2 target:** Once a production-grade privacy execution environment is available and auditable, balance shielding and membership shielding will be added. The `shieldedId` abstraction is the primary migration hook.
 
 ### 2.4 Self-Custody at All Times
 
@@ -118,9 +127,10 @@ The Brazilian consórcio is the cautionary tale. These patterns must never appea
 ## 6. Technology Stack Principles
 
 ### Smart Contracts
-- Language: Solidity (latest stable version at implementation time)
+- Language: Solidity ^0.8.20
+- Framework: Foundry (forge) — no Hardhat
 - Network: Ethereum mainnet + L2s (Arbitrum, Base, Optimism) for gas efficiency
-- Privacy: ZK-based privacy layer required for all balance and membership data
+- Privacy: Deferred to v2 (see §2.3). v1 uses `shieldedId` pseudonymity only.
 - Randomness: Chainlink VRF or equivalent verifiable on-chain randomness for selection
 - Yield: Integration with established, audited yield sources only (Aave, Compound, tokenised money market funds with KYC-gated access abstracted at protocol layer)
 - Oracles: Chainlink for real-world rate data; designed to continue if any single source fails
@@ -135,11 +145,6 @@ The Brazilian consórcio is the cautionary tale. These patterns must never appea
 - Progressive web app or React Native
 - No KYC or account creation required at the interface layer
 - Dollar-stable asset entry via bridging partners (no speculative asset exposure at onboarding)
-
-### Privacy Architecture
-- Balances, contribution history, and circle membership: shielded
-- Public chain sees only: cryptographic proofs of valid participation, selection events (anonymised), yield routing transactions (anonymised)
-- Circle identifier is generated and distributed privately by members; protocol does not associate it with member identities
 
 ---
 
@@ -166,8 +171,8 @@ Before shipping any feature, ask: **could this exist without Ethereum?**
 - If no: the feature is justified. The constraint that makes it only possible on Ethereum is a feature, not a limitation.
 
 Mandinga Protocol passes the Defipunk test on its core mechanics:
-- Privacy-first balance shielding on a public ledger → requires ZK cryptography
 - Trustless principal lock without custodian → requires smart contract enforcement
 - Verifiable randomness for fair selection → requires on-chain VRF
 - Solidarity market vouching with trustless lock → requires smart contract enforcement
 - Global, borderless, 24/7 operation without organiser → requires decentralised infrastructure
+- Privacy-first balance shielding → deferred to v2; will require ZK or FHE infrastructure when implemented
