@@ -10,9 +10,9 @@
 ## Changelog
 
 **v0.3 (February 2026):**
-- **Updated Position struct:** `vouchActive` removed — the bilateral vouching model is replaced by the Solidarity Pool (Spec 003 v0.3). Added `solidarityDebtShares` — tracks the shares owed to the Solidarity Pool for any advances received (entry gap coverage or missed round coverage).
-- **Clarified `circleObligationShares` semantics:** pre-selection, `circleObligationShares` represents the cumulative round obligations already settled to other selected members (what has been transferred out). Post-selection, it represents the locked payout that will be released round by round over the remaining circle. The invariant `sharesBalance >= circleObligationShares` holds across both phases.
-- **Pre-selection principal lock lightened:** a member no longer needs to lock the full `circleAllocation` upfront at entry. The principal lock before selection enforces only that the member cannot withdraw below their ability to cover `D` per round — or, if below that threshold, the Solidarity Pool steps in. The full lock applies post-selection when the payout is credited.
+- **Updated Position struct:** `vouchActive` removed — the bilateral vouching model is replaced by the Solidarity Pool (Spec 003). Added `solidarityDebtShares` — a single running balance tracking the shares owed to the Solidarity Pool. Defined as `convertToShares(circleAllocation − own_contributions_so_far)`. Not an accumulation of per-round flags — just one number, decreasing as the member contributes, cleared atomically at selection (Spec 003 AC-004-4).
+- **Clarified `circleObligationShares` semantics:** pre-selection, represents cumulative round obligations already settled to other selected members. Post-selection, represents the net locked payout (`payoutShares − solidarityDebtShares`) releasing round by round. The invariant `sharesBalance >= circleObligationShares` holds across both phases.
+- **Pre-selection principal lock:** the member cannot withdraw capital that would reduce their ability to cover upcoming round contributions. For pool-backed members whose insurance has activated, the principal lock on their own balance is minimal — the pool holds the reservation. The full lock applies post-selection when the net payout is credited.
 - **Out of scope updated:** references to vouching mechanics replaced with Solidarity Pool mechanics.
 
 **v0.2 (February 2026):**
@@ -50,7 +50,7 @@ struct Position {
 - **Pre-selection:** represents cumulative round obligations already settled to other selected members. Increases by `roundObligationShares` each round until the member is selected. Enforces that the member cannot withdraw below their ongoing contribution commitment.
 - **Post-selection:** set to `payoutShares - solidarityDebtShares` at selection (net locked payout). Decreases each round as the obligation is mechanically released. No active contributions required from the member post-selection.
 
-**`solidarityDebtShares`:** shares owed to the Solidarity Pool for any advances received. Set at entry (if pool-backstopped) and incremented each solidarity-covered round. Cleared atomically at selection (Spec 003 AC-005-4).
+**`solidarityDebtShares`:** a single running balance — `convertToShares(circleAllocation − own_contributions_so_far)`. Initialised at circle formation for pool-backed members. Decreases each round the member self-funds. Once pool insurance activates (`accountBalance < depositPerRound`), the balance remains at `circleAllocation − contributions_before_activation` and is cleared in full at selection (Spec 003 AC-004-4). There is no per-round flag — the debt is one number, always derivable from on-chain state.
 
 `sharesBalance` is derived at runtime via `yieldRouter.balanceOf(address(this))`. The YieldRouter is the single source of truth for share balances — no internal mirror is maintained.
 

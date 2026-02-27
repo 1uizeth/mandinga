@@ -1,7 +1,7 @@
 # Spec 002 — Savings Circle
 
 **Status:** Draft
-**Version:** 0.4
+**Version:** 0.5
 **Date:** February 2026
 **Depends on:** Spec 001 (Savings Account), Spec 003 (Solidarity Pool), Spec 004 (Yield Engine)
 
@@ -9,11 +9,11 @@
 
 ## Changelog
 
-**v0.4 (February 2026):**
-- **Relaxed AC-001-6:** Entry no longer requires `sharesBalance >= circleAllocation`. The full principal lock requirement was an overcorrection — it required members to already have the full pool amount, eliminating the primary credit utility of the ROSCA mechanism. Replaced with a two-path entry check: (a) self-funded: member has sufficient balance to cover `circleAllocation`; (b) pool-backstopped: member's balance is below `circleAllocation` but the Solidarity Pool (Spec 003) covers the gap, recording `solidarityDebtShares` on the member's position.
-- **Clarified two-phase obligation model:** Pre-selection, the member's obligation is to contribute `D` per round — enforced by the Solidarity Pool covering any shortfall and flagging the round. Post-selection, the locked payout mechanically covers all remaining rounds — no active deposits required from the selected member.
-- **US-006 formation check updated:** circle kickoff now includes a Solidarity Pool threshold check (Spec 003 US-006) for any pool-dependent members in the forming circle.
-- **Updated AC-001-4:** `circleAllocation` is locked either from the member's own `sharesBalance` (self-funded path) or from a combination of own shares and Solidarity Pool advance (pool-backstopped path).
+**v0.5 (February 2026):**
+- **Entry check simplified.** Removed the two-path check (self-funded vs pool-backstopped gap). Entry now has one check: does the Solidarity Pool hold at least `circleAllocation` in matched capital (lock ≥ `circleDuration`) for pool-backed members? Self-funded members require no pool check. The distinction is binary at formation — the pool either fully backs the member or does not.
+- **Round coverage model simplified.** No per-round flag (`solidarity_covered`). The pool reserves `circleAllocation` at circle formation. Each round: if `accountBalance ≥ depositPerRound`, member self-funds; if not, pool covers and commits to all remaining rounds. `solidarityDebtShares` is a single running balance (`circleAllocation − own_contributions`), not an accumulation of flags.
+- **AC-003-3 and AC-003-4 updated** to reflect pool commitment model (once insurance activates, it covers all remaining rounds).
+- **US-006 formation check updated** to reference Spec 003 US-005 pool depth check (per full `circleAllocation` per backed member, not `(N-1) × D`).
 
 **v0.3 (February 2026):**
 - **Closed OQ-004:** Contributions are fixed per circle (uniform across members). Circle matching is driven by two member-declared parameters: `circleAllocation` (portion of savings balance, as % or nominal $) and `circleDuration` (a number + unit input: days / weeks / months / years). `circleAllocation` = pool size = payout. `depositPerRound = circleAllocation / circleSize` is derived. See updated US-001 and Overview.
@@ -74,9 +74,9 @@ The single failure mode of traditional ROSCAs (the organiser who can abscond, or
 - AC-001-1: A member can activate circle participation from their Savings Account dashboard with one action
 - AC-001-2: At enrolment the member declares intent: `circleAllocation` (a portion of their savings balance, expressed as % or nominal $) and `circleDuration` (a number + unit input: days / weeks / months / years, e.g. "6 months" or "45 days"). This is an intent — `circleSize` and `roundLength` are unknown until the circle forms. The protocol may suggest a `circleAllocation` value based on the member's balance and current demand distribution.
 - AC-001-3: At intent declaration, the member is shown: `circleAllocation` (= pool size = payout they will receive when selected), `circleDuration` (how long their allocation will be locked), and an estimated `depositPerRound` range based on typical circle sizes at that allocation tier. Final `circleSize`, `roundLength`, and `depositPerRound` are confirmed only when the circle forms.
-- AC-001-4: Joining requires no additional deposit. Once the circle forms, `circleAllocation` is locked through one of two paths: (a) **self-funded** — carved entirely from the member's own `sharesBalance`; (b) **pool-backstopped** — the member's own shares plus a Solidarity Pool advance cover `circleAllocation` in full, with the advance recorded as `solidarityDebtShares` on the member's position (see Spec 003 US-003).
+- AC-001-4: Joining requires no additional deposit. Once the circle forms, the member participates either self-funded (their own `sharesBalance` covers their contributions each round) or pool-backed (the Solidarity Pool has reserved `circleAllocation` for the member — see Spec 003 US-003). In both cases the circle contract treats the member identically.
 - AC-001-5: A member may only be in one circle at a time per savings account.
-- AC-001-6: At circle formation (not intent declaration), the protocol evaluates the member's entry path: (a) **self-funded** — `yieldRouter.convertToAssets(sharesBalance) >= circleAllocation`; (b) **pool-backstopped** — member's balance is below `circleAllocation` but the Solidarity Pool holds sufficient undeployed capital to cover the gap (Spec 003 AC-003-1). If neither condition is met, the member remains queued. The intent declaration itself requires only that the member has a positive savings balance — no balance floor is enforced at declaration time.
+- AC-001-6: At circle formation, the protocol evaluates entry eligibility: (a) **self-funded** — `yieldRouter.convertToAssets(sharesBalance) >= circleAllocation`; (b) **pool-backed** — the Solidarity Pool holds at least `circleAllocation` in undeployed capital with declared lock ≥ `circleDuration` (Spec 003 AC-005-1). If neither holds, the member remains queued. Intent declaration requires only a positive savings balance — no floor is enforced at declaration time.
 - AC-001-7: After declaring intent, the member is placed in the queue for their `(circleAllocation, circleDuration)` pair. They are notified when a circle forms (see US-006) and may withdraw their intent at any time before formation without penalty.
 - AC-001-8: If the protocol finds a better match slightly outside the member's declared parameters, it presents the suggestion with a clear explanation of the yield improvement — the member can accept or decline.
 
@@ -102,7 +102,7 @@ The single failure mode of traditional ROSCAs (the organiser who can abscond, or
 - AC-003-1: At each round boundary, the circle reduces the selected member's `circleObligationShares` by `roundObligationShares = payoutShares / remainingRounds` — this is the per-round settlement amount
 - AC-003-2: Settlement is triggered automatically when `executeRound()` is called (permissionless) — no manual transaction from the member
 - AC-003-3: **Post-selection, no active deposits are required from the selected member.** The locked payout (`circleObligationShares`) mechanically covers all remaining rounds — the obligation decreases each round as shares are released to the pool. This is a structural property of the payout lock, not a behavioural requirement on the member.
-- AC-003-4: **Pre-selection**, the member's obligation is to contribute `D` per round from their available balance. If they cannot cover `D` in a given round, the Solidarity Pool covers the shortfall automatically (Spec 003 US-004) — the member remains in the draw and the circle proceeds unaffected.
+- AC-003-4: **Pre-selection**, the member contributes `D` each round if `accountBalance ≥ depositPerRound`. If not, the Solidarity Pool's insurance activates automatically and commits to covering all remaining rounds (Spec 003 AC-003-4). The circle contract receives `D` regardless of source — it does not distinguish between member-funded and pool-funded rounds.
 
 ### US-004 · Fair Selection
 **As a** member,
@@ -134,7 +134,7 @@ The single failure mode of traditional ROSCAs (the organiser who can abscond, or
 **So that** my yield advantage is maximised within my declared parameters.
 
 **Acceptance Criteria:**
-- AC-006-1: The protocol continuously evaluates queued intents grouped by `(circleAllocation, circleDuration)`. When a group reaches a candidate size, the kickoff algorithm runs. For any pool-backstopped members in the candidate group, the algorithm also checks the Solidarity Pool threshold (Spec 003 AC-006-1): the pool must hold at least `(N-1) × D` in undeployed capital per pool-dependent member. If the threshold is not met, the candidate N is reduced until it is, or the circle does not form.
+- AC-006-1: The protocol continuously evaluates queued intents grouped by `(circleAllocation, circleDuration)`. When a group reaches a candidate size, the kickoff algorithm runs. For any pool-backed members in the candidate group, the algorithm checks the Solidarity Pool depth (Spec 003 AC-005-1): the pool must hold at least `circleAllocation` in undeployed capital per pool-backed member, with declared lock ≥ `circleDuration`. If the pool depth is insufficient, pool-backed members are held in queue until depth is available — self-funded members are not blocked.
 - AC-006-2: The kickoff algorithm evaluates candidate `circleSize` values N from the current queue depth down to a minimum viable N. For each N it computes `roundLength = circleDuration / N`, fetches the current APY from the YieldRouter, and calculates the yield advantage for every position 1..N relative to solo saving.
 - AC-006-3: A circle is viable if the share of positions that beat solo saving meets or exceeds the **formation threshold** (a governance-configurable parameter, e.g. 70%). The algorithm selects the largest viable N — more members means more total yield generated and a longer hold time for early positions.
 - AC-006-4: Once the optimal N is selected, the circle is closed to new members, each queued member's `circleAllocation` is locked as `circleObligationShares`, and the circle starts at the resolved `roundLength`.
