@@ -25,7 +25,7 @@ See: Spec 001 for full user stories and acceptance criteria.
 
 ## Acceptance Criteria
 
-- [ ] Interface file created at `contracts/interfaces/ISavingsAccount.sol`
+- [ ] Interface file created at `backend/contracts/interfaces/ISavingsAccount.sol`
 - [ ] Interface includes all public-facing functions:
   - `deposit(uint256 amount)` — deposit USDC; starts yielding immediately
   - `withdraw(uint256 amount)` — withdraw up to `balance - circleObligation`
@@ -56,18 +56,18 @@ See: Spec 001 for full user stories and acceptance criteria.
   - `PrincipalLockViolation(uint256 balance, uint256 obligation)`
   - `NotAuthorized(address caller, address expected)`
   - `EmergencyNotActive()`
-- [ ] Interface compiled successfully
+- [ ] Interface compiles successfully with `forge build`
 
 ---
 
 ## Output Files
 
-- `contracts/interfaces/ISavingsAccount.sol`
+- `backend/contracts/interfaces/ISavingsAccount.sol`
 
 ---
 
 ## Notes
 
-- Use `bytes32 shieldedId` rather than `address` to support the privacy layer (a shielded ID is a commitment to a member's identity, not their raw address)
+- Use `bytes32 shieldedId` rather than `address` throughout state and events. In v1, `shieldedId = keccak256(abi.encodePacked(msg.sender, nonce))` — provides pseudonymity and preserves the v2 privacy migration path without breaking interface changes.
 - The `setCircleObligation` function has a strict access control requirement — only the deployed `SavingsCircle` contract address can call it. This address is set at deployment and is immutable.
 - `getPosition` may return zeroed struct for unknown shieldedIds — this is correct behaviour (no account = zero balance)
