@@ -4,7 +4,7 @@
 
 *Lightpaper v0.2 — February 2026*
 
-*Mandinga Protocol lives at the intersection of three things: a self-custodial savings account that earns yield from the moment you deposit; a built-in savings circle where anyone saving can join a group and rotate to earn yield on a larger amount than they could reach alone; and a Safety Net Pool that covers up to half your installment when you need it — or from the start if you choose — while you pay a small fee for the coverage. A permissionless savings primitive that keeps saving what it has always been — a collective act, not just an individual one.*
+*Passive income from savings is one of the most powerful forces in personal finance — and one of the most inaccessible. It requires capital large enough to generate meaningful yield, which means the people who benefit most are always the ones who needed it least. What if the passive income you are saving toward was available to you now — not after years of accumulation, but from the start? Mandinga Protocol is built around that question. It is a self-custodial savings account that earns yield from the moment you deposit, with a built-in savings circle that pools contributions from people saving the same amount as you. When you are selected, you earn on the full pool — the yield premium you were years away from reaching, available immediately. Your turn is guaranteed. Until it arrives, you compound. Mandinga — a permissionless savings primitive that keeps saving what it has always been: a collective act, not just an individual one.*
 
 ## 1. The Problem
 
