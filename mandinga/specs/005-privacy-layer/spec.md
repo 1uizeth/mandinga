@@ -1,9 +1,12 @@
 # Spec 005 — Privacy Layer
 
-**Status:** Draft
-**Version:** 0.1
-**Date:** February 2026
+**Status:** Deferred — v2
+**Version:** 0.2
+**Date:** March 2026
 **Depends on:** Spec 001 (Savings Account)
+
+> **v1 posture:** Full ZK privacy is deferred. In v1, `shieldedId` is a pseudonymous identifier (a deterministic hash of the member's address + protocol salt) — not a ZK-shielded commitment. Balances and membership are not publicly linkable to wallet addresses through the protocol layer, but they are not cryptographically shielded. This is a deliberate simplification to ship v1. Full privacy (shielded balances, ZK proofs of participation, shielded circle membership) is the primary scope of v2.
+
 
 ---
 

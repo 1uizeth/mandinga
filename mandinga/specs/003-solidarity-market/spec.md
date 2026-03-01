@@ -1,140 +1,135 @@
-# Spec 003 — Solidarity Pool
+# Spec 003 — Safety Net Pool
 
 **Status:** Draft
-**Version:** 0.4
-**Date:** February 2026
+**Version:** 1.0
+**Date:** March 2026
 **Depends on:** Spec 001 (Savings Account), Spec 002 (Savings Circle)
 
 ---
 
 ## Changelog
 
-**v0.4 (February 2026):**
-- **Collapsed entry backstop and round coverage into one mechanism.** The previous v0.3 distinction was artificial — both are instances of the same thing: the pool backing the full `circleAllocation` for a member. There is no "entry gap" and "missed round" as separate concepts. There is only: how much of the member's `circleAllocation` has the member covered themselves, and how much does the pool still hold.
-- **Insurance model formalised.** The pool acts as an insurer. Depositors lock capital for a declared duration and earn yield on it — that yield is the insurance premium equivalent. The policy activates automatically when `accountBalance < depositPerRound`. Once activated, the pool commits to covering all remaining rounds, not just the current one.
-- **Lock periods introduced.** Pool deposits are locked for a duration declared by the depositor. Capital is matched to circles whose `circleDuration` ≤ the depositor's declared lock. Once matched to a circle, capital is locked until that circle completes (all members selected). Lock periods are what make the insurance economically sound: the pool cannot withdraw while it is backing an active circle.
-- **`solidarityDebtShares` simplified.** No longer an accumulation of per-round flags. It is a single running balance: `convertToShares(circleAllocation - own_contributions_so_far)`, decreasing as the member contributes and cleared at selection.
-- **v0.3 mechanisms archived.** Per-round `solidarity_covered` flags and the two-path entry check are removed.
+**v1.0 (March 2026):**
+- **Complete rewrite.** Replaced the bilateral vouching / Solidarity Market model with the Safety Net Pool — the mechanism that enables minimum installment coverage for circle participants.
+- **Core mechanic simplified.** The pool covers the gap between `minDepositPerRound` and `depositPerRound` when a member activates the minimum option. Previously the pool backed full `circleAllocation` per member — this is removed.
+- **Reallocation support added.** Pool temporarily covers an open position when a member is reallocated (Spec 002 US-008), giving the protocol time to find a replacement member.
+- **USDC throughout.** Replaced USDS.
 
-**v0.3 (February 2026):**
-- [archived — two-mechanism model: entry backstop + round coverage]
-
-**v0.2 (February 2026):**
-- [archived — bilateral peer vouching model]
+**v0.4 (February 2026) — archived:**
+- Insurance model with full `circleAllocation` backing per member. Lock periods. `solidarityDebtShares` as running balance.
 
 ---
 
 ## Overview
 
-The Solidarity Pool is the insurance layer of Mandinga Protocol. Members with idle savings capacity deposit capital into the pool, lock it for a declared duration, and earn yield on it. In exchange, that capital guarantees circle continuity for members who cannot sustain their round contributions — covering their `circleAllocation` in full if needed, recoverable when the covered member is selected.
+The Safety Net Pool is the mechanism that makes minimum installment coverage possible. Members with idle savings capacity deposit capital into the pool, lock it for a declared duration, and earn yield on it — the same yield their capital would earn in a standalone Savings Account. In exchange, that capital covers the gap when circle participants need to use the minimum installment option.
 
-**The core mechanic is one thing, not two:**
+**The core mechanic:**
 
-When a circle forms with a pool-backed member, the pool reserves `circleAllocation` worth of capital for that member. The member contributes `D` each round from their own balance, reducing the pool's exposure. If at any round their `accountBalance < depositPerRound`, the pool's insurance activates — the pool covers that round and commits to covering all remaining rounds until selection. The member's debt is always:
+When a circle member activates the minimum installment option (Spec 002 US-007), they pay `minDepositPerRound` each round instead of the full `depositPerRound`. The Safety Net Pool covers the difference — `depositPerRound − minDepositPerRound` — each covered round. The member's `safetyNetDebtShares` increases by `convertToShares(depositPerRound − minDepositPerRound)` per covered round. At selection, `safetyNetDebtShares` is settled atomically from the gross payout before the net obligation is locked.
 
-```
-solidarityDebt = circleAllocation − own_contributions_so_far
-```
+**What pool depositors get:**
 
-At selection, the payout first clears `solidarityDebt`. The remainder is locked as `circleObligationShares`. Because payout = `N × D` and maximum debt = `N × D` (if member never contributed), the pool's advance is always fully recovered.
+USDC yield on their locked capital — the same yield they would earn in a standalone Savings Account — plus the interest paid by covered members on their `safetyNetDebtShares`. The interest is a small, transparent fee. The depositor's capital earns regardless of whether it is currently covering anyone.
 
-**Why lock periods:**
+**What the pool makes possible:**
 
-The pool cannot back a circle for 10 months if its capital can be withdrawn in month 3. Lock periods align depositor commitments with the circles they back. Once the protocol matches a depositor's capital to a circle, that capital is locked until the circle completes. Before matching, the capital earns yield and is freely withdrawable.
+A member does not need a large balance to join a circle. They need capacity to pay `minDepositPerRound` per round. The pool covers the gap. This eliminates the entry barrier without requiring the member to have the full `circleAllocation` upfront.
 
-**The return for depositors:**
-
-sUSDS yield on locked capital — the same yield the capital would earn in a standalone Savings Account. The depositor is not earning less for locking; they earn the same yield they would anyway, and the lock is what makes the insurance credible. There is no premium above base yield. The value proposition is: your idle capital earns yield regardless, and while it does, it guarantees that circles can form and survive.
+The pool also provides **reallocation support**: when a member cannot sustain even `minDepositPerRound` and is reallocated out of a circle (Spec 002 US-008), the pool temporarily covers the open position while a replacement member is matched from the queue. This keeps the circle running with minimal disruption to remaining members.
 
 ---
 
 ## Problem Statement
 
-A member who wants to join a circle but cannot sustain monthly contributions faces two failure modes:
-1. Their balance is below `circleAllocation` at entry — they cannot join.
-2. They join but hit a financial shortfall mid-circle — they cannot contribute `D` for one or more rounds.
+Two scenarios break a circle's integrity without a safety net:
 
-Both are the same underlying problem: their capital is insufficient to guarantee the circle's integrity. The Solidarity Pool solves both with one mechanism.
+1. A member cannot pay the full `depositPerRound` in a given round but can pay at least `minDepositPerRound`
+2. A member cannot pay even `minDepositPerRound` and must exit the circle
 
-The pool also solves a structural problem for the circle: in a traditional ROSCA, if a member stops contributing before selection, the remaining members are shortchanged. On-chain, the principal lock (Spec 001) prevents a member from withdrawing below their obligation — but if the member never had sufficient capital to begin with, the lock alone is not enough. The pool is the capital guarantee that the lock cannot be.
+Both create a gap the circle cannot absorb alone. The Safety Net Pool fills gap (1) automatically and buffers gap (2) while the circle is corrected. In both cases, the circle continues. Members in the circle see at most a temporary adjustment, not a failure.
 
 ---
 
 ## User Stories
 
-### US-001 · Deposit and Lock
+### US-001 · Deposit into the Safety Net Pool
 **As a** member with idle savings capacity,
-**I want to** deposit capital into the Solidarity Pool with a declared lock duration,
-**So that** my capital earns yield while serving as insurance for circle participants over that period.
+**I want to** deposit capital into the Safety Net Pool with a declared lock duration,
+**So that** my capital earns yield while enabling minimum installment coverage for others.
 
 **Acceptance Criteria:**
-- AC-001-1: A member can deposit any USDS amount (≥ $1 minimum) into the Solidarity Pool, specifying a lock duration (same unit input as `circleDuration`: days / weeks / months / years)
-- AC-001-2: Deposited capital is routed to the YieldRouter immediately — the pool holds YieldRouter shares, not USDS. Yield accrues via share price appreciation from block 1, regardless of whether the capital has been matched to a circle yet.
-- AC-001-3: Before matching, deposited capital is **undeployed** — it earns yield and is freely withdrawable. The depositor sees: USDS-equivalent deposited, yield accrued, lock duration declared, deployed vs undeployed split.
-- AC-001-4: The protocol matches undeployed capital to forming circles whose `circleDuration ≤` depositor's declared lock duration. Matching is automatic — no action required from the depositor. The depositor is notified when their capital is matched and the lock begins.
-- AC-001-5: Once matched to a circle, the capital is locked until that circle completes (all N members selected). Early withdrawal of matched capital is not permitted — the lock is enforced by the contract.
-- AC-001-6: A depositor may have multiple pool positions with different lock durations simultaneously (e.g., $500 locked for 3 months backing circle A, $1,000 locked for 12 months available for longer circles).
+- AC-001-1: A member can deposit any USDC amount (≥ \$1 minimum) into the Safety Net Pool, specifying a lock duration (same unit input as `duration` in Spec 002: days / weeks / months / years)
+- AC-001-2: Deposited capital is routed to the YieldRouter immediately — the pool holds YieldRouter shares, not USDC. Yield accrues via share price appreciation from block 1
+- AC-001-3: Before being actively used for coverage, deposited capital is **undeployed** — it earns yield and is freely withdrawable. The depositor sees: USDC-equivalent deposited, yield accrued, lock duration declared, deployed vs undeployed split
+- AC-001-4: The pool may use undeployed capital for coverage at any time during the declared lock duration. Once used, that portion is locked until the debt is settled at the covered member's selection or the reallocation is resolved
+- AC-001-5: A depositor may have multiple pool positions with different lock durations simultaneously
 
-### US-002 · Withdraw
-**As a** Solidarity Pool depositor,
+### US-002 · Withdraw from the Safety Net Pool
+**As a** Safety Net Pool depositor,
 **I want to** withdraw my capital after my lock period,
 **So that** I recover my principal and accrued yield once my commitment is fulfilled.
 
 **Acceptance Criteria:**
-- AC-002-1: Capital that is undeployed (not yet matched to any circle) is withdrawable at any time, regardless of declared lock duration
-- AC-002-2: Capital that is deployed (matched to an active circle) is locked until that circle completes — no exceptions, no early exit
-- AC-002-3: When a circle completes, deployed capital + accrued yield is automatically returned to the depositor's withdrawable pool balance. No claim transaction is required.
-- AC-002-4: The depositor sees clearly at all times: total deposited, yield earned, amount deployed to active circles (with estimated completion dates), and withdrawable amount
-- AC-002-5: After withdrawal, the depositor's Savings Account `sharesBalance` is credited with the equivalent shares — the capital returns to their savings position
+- AC-002-1: Capital that is undeployed (not currently covering any member) is withdrawable at any time regardless of declared lock duration
+- AC-002-2: Capital that is actively deployed (covering a member's minimum installment gap or an open reallocation slot) is locked until that coverage resolves — either at the covered member's selection or when a replacement member joins
+- AC-002-3: When coverage resolves, deployed capital + accrued yield is automatically returned to the depositor's withdrawable pool balance. No claim transaction required
+- AC-002-4: The depositor sees clearly: total deposited, yield earned, amount deployed (with estimated resolution timeline), and withdrawable amount
+- AC-002-5: After withdrawal, the depositor's Savings Account `sharesBalance` is credited with the equivalent shares
 
-### US-003 · Back a Circle Participant
-**As a** circle participant whose balance may be insufficient to guarantee contributions,
-**As a** protocol forming a circle,
-**The Solidarity Pool** covers the full `circleAllocation` for members who need it, activating automatically when their account balance falls below `depositPerRound`.
-
-**Acceptance Criteria:**
-- AC-003-1: At circle formation, if a queued member's `sharesBalance` is below `convertToShares(circleAllocation)`, the protocol checks whether the pool holds sufficient matched capital (i.e., capital with declared lock ≥ `circleDuration`) to reserve `circleAllocation` for that member. If yes, the member joins. If no, the member remains queued.
-- AC-003-2: At circle formation, the pool reserves `circleAllocation` worth of shares for each pool-backed member. This reservation is locked for the circle's `circleDuration`. The reserved capital continues earning yield in the YieldRouter while waiting.
-- AC-003-3: Each round, the protocol first attempts to deduct `D` from the member's own withdrawable balance. If `accountBalance ≥ depositPerRound`, the member self-funds that round and the pool's reservation is unchanged.
-- AC-003-4: If `accountBalance < depositPerRound` at any round, the pool's insurance activates. The pool covers that round from the reservation and **commits to covering all remaining rounds** — the insurance does not toggle off even if the member's balance later recovers above `depositPerRound`. This prevents an unpredictable on/off state.
-- AC-003-5: `solidarityDebtShares` is updated each round: `solidarityDebtShares = convertToShares(circleAllocation − own_contributions_so_far)`. It is a single running balance, not an accumulation of per-round flags.
-- AC-003-6: A pool-backed member has identical circle participation rights to a fully self-funded member — same selection probability (VRF), same payout, same obligation mechanics post-selection.
-- AC-003-7: The member's position display shows: their total `circleAllocation`, amount covered by own contributions so far, amount currently backed by the pool, and estimated net payout at current APY.
-
-### US-004 · Debt Settlement at Selection
-**As a** pool-backed member selected for payout,
-**The pool** recovers its advance automatically and atomically before locking the member's net obligation.
+### US-003 · Cover Minimum Installment Gap
+**As a** circle participant using the minimum installment option,
+**The Safety Net Pool** covers the gap between `minDepositPerRound` and `depositPerRound` each covered round.
 
 **Acceptance Criteria:**
-- AC-004-1: At selection, the circle contract reads `solidarityDebtShares` on the selected member's position
-- AC-004-2: If `solidarityDebtShares > 0`, those shares are transferred from the payout to the Solidarity Pool in the same transaction as the payout credit — before setting `circleObligationShares`
-- AC-004-3: Net `circleObligationShares = payoutShares − solidarityDebtShares`. This is always ≥ `convertToShares(D)`: payout = `N × D`, max debt = `N × D` (zero contributions), minimum net = 0. If the member contributed at least one round, net is always positive.
-- AC-004-4: `solidarityDebtShares` is reset to 0 atomically with settlement
-- AC-004-5: The pool's reservation for this member is released. Matched capital that was reserved but not deployed (because the member self-funded some rounds) returns to the depositor's deployable balance.
-- AC-004-6: The member receives a clear breakdown: gross payout in USDS-equivalent, solidarity debt cleared, net obligation locked, and yield projection on the net obligation at current APY.
+- AC-003-1: When the minimum installment option is active for a member (Spec 002 US-007 AC-007-2 or AC-007-3), the pool covers `depositPerRound − minDepositPerRound` each round from available capital
+- AC-003-2: The circle contract receives the full `depositPerRound` regardless of source — it does not distinguish member-funded and pool-funded portions
+- AC-003-3: The covered member's `safetyNetDebtShares` increases by `convertToShares(depositPerRound − minDepositPerRound)` each covered round
+- AC-003-4: Interest accrues on `safetyNetDebtShares` at the **coverage rate** (see OQ-005). Interest is charged from the member's yield earnings before they reach the member's position — transparent and automatic
+- AC-003-5: The member's position display shows the current `safetyNetDebtShares`, accrued interest to date, and estimated net payout at current APY
 
-### US-005 · Pool Depth and Circle Formation Eligibility
+### US-004 · Settle Debt at Selection
+**As a** pool-covered member selected for payout,
+**The Safety Net Pool** recovers its advance atomically before the net obligation is locked.
+
+**Acceptance Criteria:**
+- AC-004-1: At selection, the circle contract reads `safetyNetDebtShares` on the selected member's position
+- AC-004-2: If `safetyNetDebtShares > 0`, those shares are transferred from the gross payout to the Safety Net Pool in the same transaction as the payout credit — before `circleObligationShares` is set
+- AC-004-3: Net `circleObligationShares = convertToShares(remainingRounds × depositPerRound) − safetyNetDebtShares`. Always ≥ 0 (the payout = N × depositPerRound; maximum debt = N × (depositPerRound − minDepositPerRound); minimum net is bounded by minDepositPerRound contributions)
+- AC-004-4: `safetyNetDebtShares` is reset to 0 atomically with settlement
+- AC-004-5: Deployed pool capital that was covering this member's gap is released back to the depositor's undeployed balance
+- AC-004-6: The member receives a breakdown: gross payout (USDC-equivalent), Safety Net Pool debt cleared, net obligation locked, yield projection on the net obligation
+
+### US-005 · Reallocation Support
+**As a** circle with a member who cannot sustain even `minDepositPerRound`,
+**The Safety Net Pool** temporarily covers the open position while a replacement is found.
+
+**Acceptance Criteria:**
+- AC-005-1: When a member is reallocated out of a circle (Spec 002 US-008 AC-008-3), the Safety Net Pool temporarily covers the open position for up to a governance-configurable window (e.g., 3 rounds), giving the protocol time to match a replacement
+- AC-005-2: During the coverage window, remaining circle members continue receiving their rounds normally. The temporarily covered slot earns yield on the pool's capital
+- AC-005-3: If a replacement member joins within the coverage window, they absorb the open position and the pool's temporary coverage ends
+- AC-005-4: If no replacement is found within the coverage window, the circle adjusts to N-1 members (slightly smaller pool) and the pool's coverage ends
+- AC-005-5: Pool capital used for reallocation support is returned when the coverage window closes or a replacement joins
+
+### US-006 · Pool Depth and Availability
 **As a** protocol,
-**I need** the pool to hold sufficient matched capital before backing members in a forming circle,
-**So that** every circle that forms has its continuity guaranteed for its full duration.
+**I need** the pool to hold sufficient capital to cover minimum installment gaps and support reallocation,
+**So that** circles can form and run with the minimum installment option enabled.
 
 **Acceptance Criteria:**
-- AC-005-1: A circle can only form with pool-backed members if the pool holds at least `circleAllocation` in undeployed capital with declared lock ≥ `circleDuration` per pool-backed member in the forming circle
-- AC-005-2: This check is performed by the kickoff algorithm (Spec 002 US-006) — it is a prerequisite for including pool-backed members in a candidate circle, not a post-formation check
-- AC-005-3: A circle composed entirely of self-funded members (all with `sharesBalance ≥ circleAllocation`) has no pool depth requirement
-- AC-005-4: The pool's available-by-duration breakdown is publicly readable on-chain: for any given `circleDuration`, how much capital is available and matched
-- AC-005-5: A governance-configurable `reserveMultiplier` (default 1.0×, range 1.0–2.0×) scales the reservation per backed member above the mathematical minimum. A multiplier above 1.0 keeps a buffer in the pool beyond the worst-case advance.
+- AC-006-1: A circle can form with minimum-installment-enabled members only if the pool holds sufficient undeployed capital to cover at least one full `duration` of gap payments per such member: `(depositPerRound − minDepositPerRound) × N rounds` per covered member
+- AC-006-2: This check is performed by the kickoff algorithm (Spec 002 US-006) — prerequisite for including minimum-installment members in a candidate circle, not post-formation
+- AC-006-3: A circle composed entirely of members paying full `depositPerRound` (no minimum option) has no pool depth requirement
+- AC-006-4: The pool's available capital breakdown is publicly readable on-chain: total deposited, total deployed, total undeployed, average yield earned
 
 ---
 
 ## Out of Scope for This Spec
 
-- Per-depositor attribution of which circles their capital backed (by design — pool is fungible; attribution enables gaming)
-- Tiered yield rates based on lock duration (all depositors earn the same sUSDS rate; lock duration affects matching eligibility, not yield)
-- Partial insurance (pool backing a fraction of `circleAllocation`) — the pool backs the full amount or not at all, keeping debt accounting simple
+- Full `circleAllocation` backing per member (removed — pool covers installment gap only, not full pool size)
+- Bilateral vouching / Solidarity Market (removed — replaced by this spec)
+- Per-depositor attribution of which members their capital covered (pool is fungible; attribution enables gaming)
 - Secondary market for pool deposit positions (not in v1)
-- Automated pool deposit strategies (technically allowed, not protocol-provided)
-- Cross-pool segmentation (single shared pool in v1)
 
 ---
 
@@ -142,8 +137,8 @@ The pool also solves a structural problem for the circle: in a traditional ROSCA
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| OQ-001 | What is the minimum pool depth required to launch the first circle with pool-backed members? This sets the bootstrapping requirement and determines the go-to-market sequencing. | Protocol Economist | Open |
-| OQ-002 | Once insurance activates (`accountBalance < depositPerRound`), the pool commits to all remaining rounds. Should the member's subsequent contributions (if their balance recovers) reduce `solidarityDebtShares` anyway, or is the debt fixed at activation? Allowing reductions keeps the debt accurate; fixing it at activation simplifies accounting but overstates the pool's exposure. | Product | Open |
-| OQ-003 | Lock duration matching: should the protocol match capital to the longest available circle first (maximises lock utilisation) or the shortest (maximises depositor flexibility)? | Protocol Economist | Open |
-| OQ-004 | How does the privacy layer interact with `solidarityDebtShares` at selection? If positions are shielded, the pool contract cannot read the debt directly. A ZK proof of `solidarityDebtShares`-in-range may be required for the atomic settlement. | Protocol Architect | Open |
-| OQ-005 | Should there be a maximum pool backing per member — a cap on `circleAllocation` the pool will fully back? Without a cap, a member with zero balance joining the highest-tier circle consumes the most pool capital. A tier-based cap (e.g., pool backs up to a `circleAllocation` equivalent to X% of current pool depth) may be a useful governance guardrail. | Product | Open |
+| OQ-001 | Minimum pool depth required to launch first circle with minimum-installment members? Sets bootstrapping requirement and go-to-market sequencing. | Protocol Economist | Open |
+| OQ-002 | Reallocation coverage window: how many rounds should the pool cover an open slot before the circle adjusts to N-1? Default proposal: 3 rounds. | Product | Open |
+| OQ-003 | Lock duration matching: should the pool preferentially deploy capital with the shortest or longest available lock? Shortest maximises depositor flexibility; longest maximises coverage commitment. | Protocol Economist | Open |
+| OQ-004 | Privacy interaction: if positions are shielded, the pool contract cannot directly read `safetyNetDebtShares`. A ZK proof of debt-in-range may be required for atomic settlement. Deferred to v2 privacy layer. | Protocol Architect | Deferred |
+| OQ-005 | Coverage interest rate: APY-linked (self-adjusting, market-fair) vs fixed governance-set rate (predictable for members)? APY-linked compensates depositors at market rate but introduces variability in what members owe. | Protocol Economist | Open |

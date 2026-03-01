@@ -1,8 +1,10 @@
-# Task 003-01 — Implement SolidarityMarket Contract
+# Task 003-01 — Implement SafetyNetPool Contract
 
-**Spec:** 003 — Solidarity Market
+> **⚠ Superseded.** Spec 003 was rewritten from Solidarity Market (bilateral vouching) to Safety Net Pool (installment coverage). This task file reflects the old model and must be regenerated from Spec 003 v1.0 before implementation begins.
+
+**Spec:** 003 — Safety Net Pool (v1.0)
 **Milestone:** 4
-**Status:** Blocked on Milestone 3 (SavingsCircle complete and tested)
+**Status:** Blocked — task needs regeneration from updated spec
 **Estimated effort:** 14 hours
 **Dependencies:** Task 002-01 (SavingsCircle), Task 001-02 (SavingsAccount)
 **Parallel-safe:** No
