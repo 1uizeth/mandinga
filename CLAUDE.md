@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2026-02-27
 
 ## Active Technologies
+- TypeScript 5.x (Node 20+ or Bun) + `@chainlink/cre-sdk`, `viem` v2, Bun (package manager) (006-automation)
+- N/A — workflows are stateless; state read from chain (006-automation)
 
 ### Backend (`backend/`)
 - Solidity ^0.8.20 + Foundry (forge)
@@ -24,6 +26,12 @@ Auto-generated from all feature plans. Last updated: 2026-02-27
 
 ```text
 mandinga-protocol/
+├── workflows/            ← Chainlink CRE (Spec 006) — TypeScript, Base
+│   ├── circle-formation/   Cron 1h
+│   ├── safety-pool-monitor/  Read-only
+│   ├── reallocation-trigger/
+│   ├── yield-harvest/      Cron 1x/day
+│   └── project.yaml        Base RPCs
 ├── backend/
 │   ├── contracts/        ← Solidity sources (src = "contracts" in foundry.toml)
 │   │   ├── core/
@@ -96,12 +104,10 @@ npm run lint
 - `executeRound()` is permissionless — selection determined by VRF only
 
 ## Recent Changes
+- 006-automation: Added TypeScript 5.x (Node 20+ or Bun) + `@chainlink/cre-sdk`, `viem` v2, Bun (package manager)
 
 - 004-aave-only-yield: Yield engine scoped to Aave V3 only in v1; OndoAdapter and OracleAggregator deferred to v2
 - 003-atomic-design: Frontend components restructured to Atomic Design (atoms → molecules → organisms → templates → pages)
-- 002-monorepo-structure: Migrated to `backend/` (Foundry, `contracts/` as src) + `frontend/` (Next.js 14)
-- 001-privacy-deferred: Privacy layer deferred to v2; `shieldedId` pseudonymity retained as migration hook
-- 001-foundry-fhe-stack: Foundry (forge), OpenZeppelin Contracts v5, OpenZeppelin Foundry Upgrades
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
