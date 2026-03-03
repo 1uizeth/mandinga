@@ -163,11 +163,11 @@ In Next.js 14 App Router, the `app/` pages serve as the **Pages** level of Atomi
 
 ---
 
-## Decision 8: No Chainlink CRE Workflows in v1
+## Decision 8: Chainlink CRE Workflows — Superseded by Spec 006
 
-**Decision:** Mandinga v1 does not use Chainlink CRE DON-signed workflows. No `*-workflow/` directories or `project.yaml` in v1.
+**Original decision:** Mandinga v1 does not use Chainlink CRE DON-signed workflows.
 
-**Rationale:** CRE workflows require a deployed DON (Decentralised Oracle Network) with ACE (Access Control Engine). Mandinga's Chainlink integrations (VRF, Data Feeds) use standard Chainlink consumer contracts — not CRE workflow infrastructure. CRE workflow pattern may be evaluated for v2 automation.
+**Superseded (March 2026):** Spec 006 — Automation Layer includes CRE workflows in v1. DON deployment and ACE configuration are part of the v1 release. See `mandinga/specs/006-automation/spec.md` for the four CRE use cases (circle formation cron, Safety Pool monitor, reallocation trigger, yield harvest).
 
 ---
 
@@ -180,4 +180,4 @@ In Next.js 14 App Router, the `app/` pages serve as the **Pages** level of Atomi
 | RC-003 | Web3 library | wagmi v2 + viem v2 |
 | RC-004 | Wallet UI | rainbowkit or connectkit (to be decided at implementation) |
 | RC-005 | ABI sharing | Forge build → sync script → `frontend/src/lib/abi/` |
-| RC-006 | CRE workflows | Not used in v1 |
+| RC-006 | CRE workflows | **Superseded** — Spec 006 includes CRE in v1 |

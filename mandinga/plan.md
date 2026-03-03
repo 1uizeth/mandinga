@@ -379,14 +379,26 @@ Technology candidates for v2 (Aztec, Circom/Noir, Zama fhEVM/CoFHE) are document
 - [ ] Testnet deployment
 - [ ] `frontend/`: solidarity market browse and vouch interface
 
-### Milestone 5: Governance and Security (Weeks 29–36)
+### Milestone 5: Automation Layer — Chainlink CRE (Weeks 25–32)
+
+**Spec 006.** Four TypeScript workflows on Base. Template: [cre-templates/bring-your-own-data/workflow-ts](https://github.com/smartcontractkit/cre-templates/tree/main/starter-templates/bring-your-own-data/workflow-ts).
+
+- [ ] `workflows/` directory: project.yaml (Base RPCs), @chainlink/cre-sdk, viem
+- [ ] **circle-formation**: Cron every 1h; off-chain kickoff; call formCircle
+- [ ] **safety-pool-monitor**: Read-only; alert when member needs coverage
+- [ ] **reallocation-trigger**: Call initiateReallocation after 1 round grace
+- [ ] **yield-harvest**: Cron 1x/day; call YieldRouter.harvest()
+- [ ] DON deployment and ACE for Base
+- [ ] `cre workflow simulate` validation
+
+### Milestone 6: Governance and Security (Weeks 33–40)
 - [ ] `backend/contracts/governance/MandigaGovernor.sol` — one-member-one-vote governance
 - [ ] Governance parameters (fee rate, buffer reserve %)
 - [ ] External security audit (all contracts)
 - [ ] Bug bounty program launch
 - [ ] Formal verification of core invariants (`sharesBalance >= circleObligationShares`)
 
-### Milestone 6: Frontend Polish (Weeks 20–36, parallel with M4/M5)
+### Milestone 7: Frontend Polish (Weeks 20–40, parallel with M4–M6)
 
 **Atomic Design build order (atoms → molecules → organisms → templates → pages):**
 
@@ -400,7 +412,7 @@ Technology candidates for v2 (Aztec, Circom/Noir, Zama fhEVM/CoFHE) are document
 - [ ] PWA manifest and offline support
 - [ ] Accessibility audit (WCAG 2.1 AA target)
 
-### Milestone 7: Mainnet Launch (Week 37+)
+### Milestone 8: Mainnet Launch (Week 41+)
 - [ ] Audit remediations complete
 - [ ] Governance multisig established
 - [ ] Emergency procedures tested
