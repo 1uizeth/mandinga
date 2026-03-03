@@ -4,7 +4,7 @@
 **Milestone:** 2
 **Status:** Blocked on Milestone 1 (Yield Engine must be deployed to testnet first)
 **Estimated effort:** 2 hours
-**Dependencies:** Task 004-01 (IYieldRouter)
+**Dependencies:** Task 001-00 (Foundry setup), Task 004-01 (IYieldRouter)
 **Parallel-safe:** Yes (interface definition doesn't require yield engine deployed)
 
 ---
@@ -25,7 +25,7 @@ See: Spec 001 for full user stories and acceptance criteria.
 
 ## Acceptance Criteria
 
-- [ ] Interface file created at `backend/contracts/interfaces/ISavingsAccount.sol`
+- [ ] Interface file created at `contracts/interfaces/ISavingsAccount.sol`
 - [ ] Interface includes all public-facing functions:
   - `deposit(uint256 amount)` — deposit USDC; starts yielding immediately
   - `withdraw(uint256 amount)` — withdraw up to `balance - circleObligation`
@@ -62,7 +62,7 @@ See: Spec 001 for full user stories and acceptance criteria.
 
 ## Output Files
 
-- `backend/contracts/interfaces/ISavingsAccount.sol`
+- `contracts/interfaces/ISavingsAccount.sol`
 
 ---
 
