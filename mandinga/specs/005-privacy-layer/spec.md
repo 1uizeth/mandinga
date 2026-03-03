@@ -1,17 +1,33 @@
 # Spec 005 — Privacy Layer
 
-**Status:** Draft
-**Version:** 0.1
+**Status:** Deferred — v2
+**Version:** 0.2
 **Date:** February 2026
 **Depends on:** Spec 001 (Savings Account)
 
 ---
 
-## Overview
+## Decision Record
 
-The Privacy Layer is the cryptographic infrastructure that ensures member balances, contribution history, and circle membership are shielded from the public ledger. The public chain sees only cryptographic proofs of valid participation — not who is saving, how much, or with whom.
+**February 2026:** Privacy layer deferred to v2. See `constitution.md` §2.3 for full rationale.
 
-Privacy is not a feature in Mandinga Protocol. It is a constitutional requirement. Without it, the protocol cannot serve its intended users: people in jurisdictions with financial surveillance, people who cannot safely expose their savings to public observation, and communities whose social fabric depends on the discretion that makes traditional ROSCAs work.
+The core decision: ZK circuit toolchains (Circom, Noir) and FHE-enabled execution environments are not yet sufficiently mature for the complexity required by Mandinga Protocol's mechanics. v1 ships without balance or membership shielding.
+
+**What is active in v1 instead:**
+- `shieldedId = keccak256(abi.encodePacked(msg.sender, nonce))` — pseudonymous identifier used across all contracts instead of raw `address`. Provides a migration hook for v2 without a breaking interface change.
+- All contracts accept and store `bytes32 shieldedId` in state and events, never raw `address`.
+
+**OQ-001 status:** Resolved as "deferred". No privacy technology selection is required for v1.
+
+**This spec is retained** as the design document for v2 implementation. All user stories and acceptance criteria below remain valid targets for v2.
+
+---
+
+## Overview (v2 target)
+
+The Privacy Layer is the cryptographic infrastructure that will ensure member balances, contribution history, and circle membership are shielded from the public ledger. The public chain will see only cryptographic proofs of valid participation — not who is saving, how much, or with whom.
+
+Privacy is a core roadmap commitment in Mandinga Protocol. It is deferred to v2 due to toolchain maturity constraints, not deprioritised. Without it, the protocol cannot fully serve users in jurisdictions with financial surveillance, users who cannot safely expose their savings to public observation, and communities whose social fabric depends on the discretion that makes traditional ROSCAs work.
 
 ---
 
@@ -90,18 +106,17 @@ Public blockchains expose every transaction permanently and irreversibly. For a 
 
 ---
 
-## Privacy Layer Technology Candidates
+## Privacy Layer Technology Candidates (v2 evaluation)
 
-The following are being evaluated. The final decision must be made before implementation of any other spec, as it affects how all state is stored.
+The following options will be re-evaluated when v2 privacy work begins. The decision is not required for v1.
 
 | Option | Pros | Cons | Status |
 |---|---|---|---|
-| **Aztec Protocol** | Native privacy L2 with mature ZK tooling; designed for exactly this use case | Still maturing; L2 adds latency; cross-L2 composability is complex | Under evaluation |
-| **zkSync + private state** | L2 already at scale; growing privacy primitives | Private state is not yet mature in production | Under evaluation |
-| **Custom ZK circuits (Circom/Noir)** | Maximum control; can be deployed on any L2 | Highest engineering cost; highest audit surface | Under evaluation |
-| **RAILGUN** | Privacy shield for ERC-20 tokens; production-deployed | Not designed for savings circle mechanics; adapting it may introduce complexity | Under evaluation |
-
-**Decision needed before Spec 001 implementation begins.**
+| **Aztec Protocol** | Native privacy L2 with mature ZK tooling; designed for exactly this use case | Still maturing; L2 adds latency; cross-L2 composability is complex | Deferred |
+| **zkSync + private state** | L2 already at scale; growing privacy primitives | Private state not yet mature in production | Deferred |
+| **Custom ZK circuits (Circom/Noir)** | Maximum control; deployable on any L2 | Highest engineering cost; highest audit surface | Deferred |
+| **Zama fhEVM / CoFHE** | FHE-native encrypted state; no ZK proof generation required client-side | Requires FHE-enabled execution environment; limited L2 support | Deferred |
+| **RAILGUN** | Privacy shield for ERC-20 tokens; production-deployed | Not designed for savings circle mechanics | Deferred |
 
 ---
 
@@ -117,7 +132,7 @@ The following are being evaluated. The final decision must be made before implem
 
 | # | Question | Owner | Status |
 |---|---|---|---|
-| OQ-001 | Which privacy technology do we build on? This is the highest-priority architectural decision in the project. | Protocol Architect | Urgent / Open |
-| OQ-002 | Can we achieve the gas target of < 200k for proof verification on Ethereum L2? This determines whether we can run the full protocol on-chain or need an off-chain proof aggregation layer. | ZK Engineer | Open |
-| OQ-003 | How do we handle the transition from transparent deposits (stablecoin transfer in) to shielded savings position? This entry point may leak information about the depositor. | Protocol Architect | Open |
-| OQ-004 | Regulatory posture: some jurisdictions require travel rule compliance for crypto transfers above certain thresholds. Does the privacy layer create a legal risk? | Legal | Open |
+| OQ-001 | Which privacy technology do we build on? | Protocol Architect | **Deferred to v2** |
+| OQ-002 | Can we achieve the gas target of < 200k for proof verification on Ethereum L2? | ZK Engineer | **Deferred to v2** |
+| OQ-003 | How do we handle the transition from transparent deposits to shielded savings position? | Protocol Architect | **Deferred to v2** |
+| OQ-004 | Regulatory posture: do privacy mechanics create travel rule compliance risk? | Legal | **Deferred to v2** |
