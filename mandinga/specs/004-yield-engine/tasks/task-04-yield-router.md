@@ -2,9 +2,9 @@
 
 **Spec:** 004 — Yield Engine
 **Milestone:** 1
-**Status:** Blocked on Tasks 004-02 and 004-03
-**Estimated effort:** 8 hours
-**Dependencies:** Task 004-01 (interface), Task 004-02 (OracleAggregator), Task 004-03 (AaveAdapter)
+**Status:** Blocked on Task 004-03 only (OracleAggregator deferred to v2)
+**Estimated effort:** 6 hours
+**Dependencies:** Task 004-01 (interface), Task 004-03 (AaveAdapter)
 **Parallel-safe:** No
 
 ---
@@ -17,27 +17,28 @@ Implement `YieldRouter.sol` — the central yield orchestration contract. It man
 
 ## Context
 
-This is the contract that makes the savings account yield-bearing. It receives deposits from `SavingsAccount`, allocates them to adapters (Aave, Ondo), harvests yield periodically, and routes the net yield (after protocol fee) back to member balances via `SavingsAccount.creditYield`.
+This is the contract that makes the savings account yield-bearing. It receives deposits from `SavingsAccount`, routes 100% to `AaveAdapter` (sole adapter in v1), harvests yield periodically via share price appreciation (no `creditYield()` call), deducts fee + buffer, and lets net yield raise the share price for all positions automatically.
 
-See: Spec 004 all user stories, plan.md §3.4.
+**v1 simplifications vs original design:**
+- Single adapter (AaveAdapter) — no allocation weights, no `rebalance()`
+- No OracleAggregator dependency — circuit breaker reads Aave liquidity directly
+- `allocate()` → routes 100% to AaveAdapter, no weight splitting
+
+See: Spec 004 v0.4, plan.md §3.4.
 
 ---
 
 ## Acceptance Criteria
 
-### Allocation
-- [ ] `allocate(uint256 amount)` — called by SavingsAccount on deposit:
-  - Receives USDC from SavingsAccount
-  - Splits allocation across active adapters per `allocationWeights`
-  - Calls `adapter.deposit(allocatedAmount)` for each adapter
+### Allocation (simplified — single adapter)
+- [ ] `_deposit()` override — called by ERC4626 on deposit:
+  - Receives USDC (pulled by ERC4626 `deposit()`)
+  - Routes 100% to `aaveAdapter.deposit(assets)`
   - Emits `CapitalAllocated(amount, timestamp)`
-- [ ] `withdraw(uint256 amount)` — called by SavingsAccount on withdrawal:
-  - Retrieves USDC from adapters in proportion to their allocation weight
-  - If any single adapter cannot cover the withdrawal, pulls from others (waterfall logic)
-  - Transfers USDC back to SavingsAccount
+- [ ] `_withdraw()` override — called by ERC4626 on withdrawal:
+  - Pulls USDC from `aaveAdapter.withdraw(assets)` before transferring to receiver
   - Emits `CapitalWithdrawn(amount, timestamp)`
-- [ ] `allocationWeights` is a mapping from adapter address to `uint256` weight (in basis points, must sum to 10000)
-- [ ] Governance can call `setAllocationWeights(address[] adapters, uint256[] weights)` with a 7-day timelock
+- [ ] `aaveAdapter` address is immutable — set at construction, not changeable in v1 (v2 will add governance-managed adapter registry)
 
 ### Harvesting
 - [ ] `harvest()` — callable by anyone, executes the yield distribution cycle:
@@ -50,13 +51,12 @@ See: Spec 004 all user stories, plan.md §3.4.
 - [ ] `harvest()` is idempotent within a single block — calling twice returns 0 on second call
 - [ ] `harvest()` is callable no more than once per hour (prevents MEV griefing)
 
-### Circuit Breaker
-- [ ] Before every `harvest()`, check `oracleAggregator.getRate()`:
-  - If `circuitBreakerActive == true`: skip rebalancing, proceed with harvest at conservative rate
+### Circuit Breaker (simplified for single adapter)
+- [ ] Before every `harvest()`, check Aave's available USDC liquidity via `aaveAdapter.getBalance()`:
+  - If liquidity is critically low (below governance-set threshold), pause `harvest()` only
   - Log circuit breaker state in emitted event
-- [ ] `rebalance()` — adjusts adapter allocations toward target weights:
-  - Blocked if oracle circuit breaker is active
-  - Callable by anyone once per 24 hours (prevents excessive gas consumption)
+  - Withdrawals always available regardless of circuit breaker state
+- [ ] No `rebalance()` function in v1 — single adapter means nothing to rebalance
 
 ### Fee Collection
 - [ ] `feeRateBps` — configurable by governance, default 1000 (10%), hard ceiling 2000 (20%), hard floor 0
@@ -64,30 +64,30 @@ See: Spec 004 all user stories, plan.md §3.4.
 - [ ] Treasury address configurable by governance with 7-day timelock
 - [ ] `getFeeInfo() returns (uint256 feeRate, uint256 bufferRate, address treasury)` — public view
 
-### Blended APY
+### APY
 - [ ] `getBlendedAPY() returns (uint256 apyBps)`:
-  - Calculates weighted average APY across all active adapters
-  - Uses oracle data where available, falls back to adapter's own `getAPY()` otherwise
+  - Returns `aaveAdapter.getAPY()` directly (single source, no weighting needed)
+  - `getAPY()` on AaveAdapter reads from `IPoolDataProvider.getReserveData(USDC).currentLiquidityRate`
 
 ### Tests
-- [ ] Unit tests at `test/unit/YieldRouter.test.ts` using mock adapters:
-  - Allocate 1000 → mock adapters receive correct proportional amounts
-  - Harvest → gross yield collected, fee deducted, buffer deducted, net distributed
-  - `setAllocationWeights` with weights not summing to 10000 → reverts
-  - `harvest()` twice in one block → second call returns 0
-  - Circuit breaker active → `rebalance()` blocked, `harvest()` continues at fallback rate
-  - Withdrawal covers amount across adapters correctly
+- [ ] Unit tests at `backend/test/unit/YieldRouter.t.sol` using a mock AaveAdapter:
+  - Deposit 1000 USDC → mock adapter receives full amount
+  - Harvest → gross yield collected, fee (10%) deducted, buffer (5%) deducted, share price rises
+  - `harvest()` twice in one block → second call harvests 0 (idempotent)
+  - Circuit breaker: mock adapter returns critically low balance → `harvest()` paused, `withdraw()` still works
+  - Withdrawal: correct USDC amount returned from adapter
 
 ---
 
 ## Output Files
 
-- `contracts/yield/YieldRouter.sol`
-- `test/unit/YieldRouter.test.ts`
+- `backend/contracts/yield/YieldRouter.sol`
+- `backend/test/unit/YieldRouter.t.sol`
 
 ---
 
 ## Notes
 
-- Yield distribution across savings positions (the last step of `harvest()`) requires knowing all active positions and their balances. This creates a gas problem at scale. For v1: use an off-chain keeper that calls `harvest()` periodically and a Merkle-drop mechanism for yield distribution. The on-chain interface accepts proof of each position's entitled yield. Document this clearly in the contract.
-- The Merkle-drop approach means members must claim their yield (or it is auto-credited by a keeper). This is a design compromise for v1; the target is fully on-chain automatic accrual when gas costs allow.
+- Yield distribution is handled via share price appreciation (ERC4626 model) — no per-position distribution, no Merkle-drop. `harvest()` simply lets yield accumulate in the pool, raising `totalAssets()` and thus every share's USDC value automatically.
+- `aaveAdapter` is set as an immutable address at construction in v1. v2 will introduce a governance-managed adapter registry.
+- The YieldRouter is access-restricted: only `SavingsAccount` can call `deposit()` and `withdraw()`. The `onlySavingsAccount` modifier enforces this.

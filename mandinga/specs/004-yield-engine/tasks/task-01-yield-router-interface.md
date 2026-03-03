@@ -25,7 +25,7 @@ See: `plan.md` §3.4 for the key function signatures.
 
 ## Acceptance Criteria
 
-- [ ] Interface file created at `contracts/interfaces/IYieldRouter.sol`
+- [ ] Interface file created at `backend/contracts/interfaces/IYieldRouter.sol`
 - [ ] Interface includes:
   - `allocate(uint256 amount)` — deposit capital for yield routing
   - `withdraw(uint256 amount)` — withdraw capital (for member withdrawals)
@@ -39,13 +39,13 @@ See: `plan.md` §3.4 for the key function signatures.
   - `YieldHarvested(uint256 amount, uint256 timestamp)`
   - `CircuitBreakerTripped(string reason, uint256 timestamp)`
   - `CircuitBreakerReset(uint256 timestamp)`
-- [ ] Interface compiled successfully with `solc ^0.8.20`
+- [ ] Interface compiles successfully with `forge build`
 
 ---
 
 ## Output Files
 
-- `contracts/interfaces/IYieldRouter.sol`
+- `backend/contracts/interfaces/IYieldRouter.sol`
 
 ---
 
