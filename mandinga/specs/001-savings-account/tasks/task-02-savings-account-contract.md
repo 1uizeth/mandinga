@@ -26,7 +26,7 @@ See: Spec 001 all user stories, plan.md §3.1.
 ## Acceptance Criteria
 
 ### Contract Implementation
-- [ ] Contract at `backend/contracts/core/SavingsAccount.sol` implementing `ISavingsAccount`
+- [ ] Contract at `contracts/core/SavingsAccount.sol` implementing `ISavingsAccount`
 - [ ] Constructor takes: `IYieldRouter yieldRouter`, `address emergencyModule`, `address savingsCircle`, `address stablecoin`
 - [ ] `deposit(uint256 amount)`:
   - Transfers USDC from caller to contract
@@ -65,7 +65,7 @@ See: Spec 001 all user stories, plan.md §3.1.
 - [ ] Add invariant check `assert(positions[id].balance >= positions[id].circleObligation)` as an internal guard on every state-modifying function (can be removed in production build after formal verification, but required for testnet)
 
 ### Tests
-- [ ] Unit tests at `test/unit/SavingsAccount.t.sol` (Forge):
+- [ ] Unit tests at `test/unit/SavingsAccount.t.sol`:
   - Deposit → balance reflects deposit
   - Withdraw free balance → succeeds
   - Withdraw locked balance → reverts with `InsufficientWithdrawableBalance`
@@ -75,7 +75,7 @@ See: Spec 001 all user stories, plan.md §3.1.
   - Emergency: `activateEmergency` by non-module → reverts
   - Reentrancy: attempt reentrant withdrawal → reverts
 
-- [ ] Invariant/fuzz test at `test/invariant/BalanceInvariants.t.sol` (Foundry invariant testing):
+- [ ] Invariant/fuzz test at `test/invariant/BalanceInvariants.t.sol`:
   - Random sequence of deposits, withdrawals, obligation sets
   - Invariant function: assert `sharesBalance >= circleObligationShares` for all positions after every call
 
@@ -83,9 +83,9 @@ See: Spec 001 all user stories, plan.md §3.1.
 
 ## Output Files
 
-- `backend/contracts/core/SavingsAccount.sol`
-- `backend/test/unit/SavingsAccount.t.sol`
-- `backend/test/invariant/BalanceInvariants.t.sol`
+- `contracts/core/SavingsAccount.sol`
+- `test/unit/SavingsAccount.t.sol`
+- `test/invariant/BalanceInvariants.t.sol`
 
 ---
 

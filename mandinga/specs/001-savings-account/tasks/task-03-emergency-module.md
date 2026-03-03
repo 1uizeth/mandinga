@@ -42,7 +42,7 @@ See: Spec 001, US-005 (Emergency Exit).
   - Resets the proposal state
 - [ ] `getEmergencyStatus() returns (bool proposed, uint256 executeAfter, bool activated)`:
   - Public view function so anyone can check the state
-- [ ] Unit tests at `test/unit/EmergencyModule.test.ts`:
+- [ ] Unit tests at `test/unit/EmergencyModule.t.sol`:
   - Non-governance proposes emergency → reverts
   - Governance proposes → timelock starts
   - Execute before timelock → reverts
@@ -57,7 +57,7 @@ See: Spec 001, US-005 (Emergency Exit).
 ## Output Files
 
 - `contracts/core/EmergencyModule.sol`
-- `test/unit/EmergencyModule.test.ts`
+- `test/unit/EmergencyModule.t.sol`
 
 ---
 
