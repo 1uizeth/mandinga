@@ -1,7 +1,9 @@
 # Spec 004 — Yield Engine
 
 **Status:** Draft
+
 **Version:** 0.4
+
 **Date:** February 2026
 **Depends on:** Spec 001 (Savings Account)
 
