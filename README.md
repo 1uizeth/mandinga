@@ -8,7 +8,7 @@ A permissionless savings primitive that encodes rotating savings circle (ROSCA) 
 
 ## What It Is
 
-Mandinga Protocol gives anyone access to lump-sum capital earlier than individual saving allows — the same compounding advantage that historically required wealth to access. Members declare how much they can save and for how long; the protocol matches them into circles, routes yield via Aave V3, and selects payouts via Chainlink VRF. No auctions. No organiser. No KYC.
+Mandinga Protocol gives anyone access to lump-sum capital earlier than individual saving allows — the same compounding advantage that historically required wealth to access. Members declare how much they can save and for how long; the protocol matches them into circles, routes yield via the Spark USDC Vault (Sky Savings Rate on Base), and selects payouts via Chainlink VRF. No auctions. No organiser. No KYC.
 
 ## Repository Layout
 
@@ -22,10 +22,10 @@ mandinga-protocol/
 │       ├── 004-yield-engine/
 │       ├── 005-privacy-layer/
 │       └── 006-automation/
-├── front/            # Next.js 14 frontend (App Router)
-├── cre-circle/        # Chainlink CRE automation workflows
-├── Lightpaper.md              # Protocol lightpaper v0.2
-└── CLAUDE.md                  # AI development guidelines
+├── front/                 # Next.js 14 frontend (App Router)
+├── cre-circle/            # Chainlink CRE automation workflows
+├── Lightpaper.md          # Protocol lightpaper v0.2
+└── CLAUDE.md              # AI development guidelines
 ```
 
 ## Prerequisites
@@ -77,13 +77,13 @@ bun install
 | [001](./mandinga/specs/001-savings-account/) | Savings Account | Implemented |
 | [002](./mandinga/specs/002-savings-circle/) | Savings Circle | In progress |
 | [003](./mandinga/specs/003-solidarity-market/) | Solidarity Market | Specified |
-| [004](./mandinga/specs/004-yield-engine/) | Yield Engine (Aave v1) | Specified |
+| [004](./mandinga/specs/004-yield-engine/) | Yield Engine (Spark USDC Vault v1) | Specified |
 | [005](./mandinga/specs/005-privacy-layer/) | Privacy Layer | Specified |
 | [006](./mandinga/specs/006-automation/) | CRE Automation | In progress |
 
 ## Key Design Decisions
 
-- **Yield source (v1):** Aave V3 only — real-world yield sources (Ondo, Superstate) deferred to v2
+- **Yield source (v1):** Spark USDC Vault (Sky Savings Rate, Base) — real-world yield sources (Ondo, Superstate) deferred to v2
 - **Randomness:** Chainlink VRF v2.5 — selection order is verifiably fair, not purchasable
 - **Privacy:** `bytes32 shieldedId` throughout state and events — no addresses on-chain
 - **Governance:** Equal weight per member regardless of deposit size
@@ -100,10 +100,10 @@ CRE workflows automate protocol-critical operations on a DON (Decentralised Orac
 
 | Workflow | Trigger | Blockchain reads | External data source | Write |
 |----------|---------|-----------------|---------------------|-------|
-| Circle Formation | Cron 1h | Queue contract (intents), Governance (threshold) | Aave V3 pool APY (kickoff viability) | `formCircle()` |
+| Circle Formation | Cron 1h | Queue contract (intents), Governance (threshold) | Spark vault APY (kickoff viability) | `formCircle()` |
 | Safety Pool Monitor | Cron | SavingsCircle (min-option members), SavingsAccount (balances) | — | None (alert only) |
 | Reallocation Trigger | Cron | SavingsCircle (payment status), SavingsAccount (balance) | — | `initiateReallocation()` |
-| Yield Harvest | Cron 1x/day | YieldRouter APY | Aave V3 supply rate | `harvest()` |
+| Yield Harvest | Cron 1x/day | YieldRouter APY | Spark `rateProvider.getConversionRate()` | `harvest()` |
 
 **CRE workflow files:**
 
@@ -142,7 +142,7 @@ Used in the Savings Circle to determine payout order. Selection is verifiably ra
 
 ### Chainlink Data Feeds *(v2)*
 
-`AggregatorV3Interface` via `OracleAggregator` for multi-source yield rate data. Deferred to v2 — Aave V3 on-chain rate is used directly in v1.
+`AggregatorV3Interface` via `OracleAggregator` for multi-source yield rate data. Deferred to v2 — Spark `rateProvider.getConversionRate()` is used directly in v1.
 
 | File | Description |
 |------|-------------|
