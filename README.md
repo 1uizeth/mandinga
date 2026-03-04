@@ -2,7 +2,7 @@
 
 A permissionless savings primitive that encodes rotating savings circle (ROSCA) logic into self-custodial, yield-bearing smart contracts.
 
-→ [Read the Lightpaper](./Lightpaper.md)
+→ [Read the Lightpaper](./mandinga-lightpaper.md)
 
 ---
 
@@ -25,7 +25,7 @@ mandinga-protocol/
 │       └── 006-automation/
 ├── mandinga_front/            # Next.js 14 frontend (App Router)
 ├── cre-manding-circle/        # Chainlink CRE automation workflows
-├── Lightpaper.md              # Protocol lightpaper v0.2
+├── mandinga-lightpaper.md     # Protocol lightpaper v0.2
 └── CLAUDE.md                  # AI development guidelines
 ```
 
