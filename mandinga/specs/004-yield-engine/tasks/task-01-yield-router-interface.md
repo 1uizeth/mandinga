@@ -45,7 +45,7 @@ See: `plan.md` §3.4 for the key function signatures.
 
 ## Output Files
 
-- `backend/contracts/interfaces/IYieldRouter.sol`
+- `contracts/interfaces/IYieldRouter.sol`
 
 ---
 

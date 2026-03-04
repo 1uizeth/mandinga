@@ -14,18 +14,17 @@ Mandinga Protocol gives anyone access to lump-sum capital earlier than individua
 
 ```
 mandinga-protocol/
-├── mandinga/                  # Smart contracts + feature specs
-│   ├── contracts/             # Interface documentation
-│   └── specs/                 # Feature specs (001–006)
+├── contracts/             # Smart contracts + feature specs Interface documentation
+├── specs/                 # Feature specs (001–006)
 │       ├── 001-savings-account/
 │       ├── 002-savings-circle/
 │       ├── 003-solidarity-market/
 │       ├── 004-yield-engine/
 │       ├── 005-privacy-layer/
 │       └── 006-automation/
-├── mandinga_front/            # Next.js 14 frontend (App Router)
-├── cre-manding-circle/        # Chainlink CRE automation workflows
-├── mandinga-lightpaper.md     # Protocol lightpaper v0.2
+├── front/            # Next.js 14 frontend (App Router)
+├── cre-circle/        # Chainlink CRE automation workflows
+├── Lightpaper.md              # Protocol lightpaper v0.2
 └── CLAUDE.md                  # AI development guidelines
 ```
 
@@ -42,7 +41,7 @@ mandinga-protocol/
 ### Contracts
 
 ```bash
-cd mandinga
+cd contracts
 
 # Build
 forge build
@@ -57,7 +56,7 @@ forge test --match-path "test/invariant/*" --invariant-runs 10000
 ### Frontend
 
 ```bash
-cd mandinga_front
+cd front
 
 bun install
 bun run dev
@@ -89,7 +88,7 @@ bun install
 - **Privacy:** `bytes32 shieldedId` throughout state and events — no addresses on-chain
 - **Governance:** Equal weight per member regardless of deposit size
 
----
+## 2. The Principles
 
 ## Chainlink Integration
 
@@ -149,7 +148,7 @@ Used in the Savings Circle to determine payout order. Selection is verifiably ra
 |------|-------------|
 | [`mandinga/specs/004-yield-engine/tasks/task-02-oracle-aggregator.md`](./mandinga/specs/004-yield-engine/tasks/task-02-oracle-aggregator.md) | `AggregatorV3Interface` integration, multi-feed aggregation |
 
----
+-   Structural enforcement over surveillance: the protocol enforces correct behaviour through incentive design, not identity tracking or permanent reputation marks.
 
 ## License
 

@@ -17,51 +17,73 @@ Initialize the Foundry project at repository root with `contracts/` as the Solid
 
 ## Context
 
-The Mandinga protocol uses Foundry for Solidity development. The project structure places contracts at `contracts/` (repo root), with `script/` and `test/` alongside. This task establishes the base for all subsequent contract work (Spec 001, 002, 003, 004).
+The Mandinga protocol uses Foundry for Solidity development. `foundry.toml` and `contracts/` are placed at the **repo root** (`/mandinga`), alongside `script/`, `test/`, and `lib/`. Chainlink (VRF v2.5) is required by Spec 002 (SavingsCircle); installed here as a shared dependency. Spec 001 itself does not use Chainlink directly.
 
-See: CLAUDE.md (Active Technologies), plan structure.
+See: CLAUDE.md (Active Technologies).
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Foundry project initialized at repo root: `forge init` (or equivalent) with `src = "contracts"` in `foundry.toml`
-- [ ] `foundry.toml` configured:
-  - `src = "contracts"`
-  - `out = "out"`
-  - `test = "test"`
-  - `script = "script"`
-  - Solidity version `^0.8.20` (per CLAUDE.md)
-- [ ] OpenZeppelin Contracts v5 installed: `forge install OpenZeppelin/openzeppelin-contracts --no-commit`
-- [ ] Chainlink contracts installed: `forge install smartcontractkit/chainlink --no-commit` (or `foundry-chainlink` if applicable)
-- [ ] `remappings.txt` (or foundry.toml remappings) includes:
-  - `@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/`
-  - `@chainlink/contracts/=lib/chainlink/contracts/` (or equivalent path)
+- [ ] `forge init --no-commit` run at repo root, then:
+  - Rename generated `src/` to `contracts/` (or skip generation and create `contracts/` manually)
+  - Edit `foundry.toml` to set `src = "contracts"`
+- [ ] `foundry.toml` at repo root configured as:
+  ```toml
+  [profile.default]
+  src = "contracts"
+  out = "out"
+  test = "test"
+  script = "script"
+  solc = "0.8.20"
+  fs_permissions = [{ access = "read", path = "lib/foundry-chainlink-toolkit/out" }]
+  ```
+- [ ] `forge install foundry-rs/forge-std --no-commit`
+- [ ] OpenZeppelin installed (single command — brings both `contracts` and `contracts-upgradeable` from same release):
+  ```bash
+  forge install OpenZeppelin/openzeppelin-contracts-upgradeable --no-commit
+  forge install OpenZeppelin/openzeppelin-foundry-upgrades --no-commit
+  ```
+- [ ] Chainlink installed:
+  ```bash
+  forge install smartcontractkit/foundry-chainlink-toolkit --no-commit
+  ```
+- [ ] `remappings.txt` at repo root contains:
+  ```
+  @openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/
+  @openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
+  @chainlink/contracts/=lib/foundry-chainlink-toolkit/lib/chainlink/contracts/
+  forge-std/=lib/forge-std/src/
+  ```
 - [ ] Directory structure created under `contracts/`:
   - `contracts/core/`
   - `contracts/yield/`
-  - `contracts/governance/`
   - `contracts/interfaces/`
-- [ ] `forge build` succeeds with no contracts (empty structure compiles)
-- [ ] `script/` and `test/` directories exist at repo root (or as configured in foundry.toml)
+  - `contracts/governance/` — criar vazio com `.gitkeep`; reservado para v2 (MandigaGovernor + TimelockController)
+- [ ] `forge build` succeeds with empty contract set
 
 ---
 
 ## Output Files
 
-- `foundry.toml` (at repo root)
-- `remappings.txt` (or remappings in foundry.toml)
-- `contracts/` (directory structure)
+- `foundry.toml` (repo root)
+- `remappings.txt` (repo root)
+- `contracts/core/`, `contracts/yield/`, `contracts/interfaces/`
+- `contracts/governance/.gitkeep` (placeholder — contratos de governança são v2)
 - `script/`
-- `test/`
-- `lib/openzeppelin-contracts/`
-- `lib/chainlink/` (or equivalent)
+- `test/unit/`, `test/integration/`, `test/invariant/`
+- `lib/forge-std/`
+- `lib/openzeppelin-contracts-upgradeable/`
+- `lib/openzeppelin-foundry-upgrades/`
+- `lib/foundry-chainlink-toolkit/`
 
 ---
 
 ## Notes
 
-- Use `--no-commit` on `forge install` to avoid automatic git commits; commit dependencies in a separate step.
-- If the repo uses a monorepo layout (e.g. `mandinga/` as subfolder), ensure `foundry.toml` and `contracts/` are placed according to the chosen root (repo root vs. `mandinga/`).
-- Chainlink: For VRF and automation, the typical package is `smartcontractkit/chainlink` or `smartcontractkit/foundry-chainlink`. Adjust remappings to match the installed package structure.
-- OpenZeppelin v5: Use `@openzeppelin/contracts-upgradeable` if upgradeable proxies are needed later (Spec 004).
+- `openzeppelin-contracts-upgradeable` inclui `openzeppelin-contracts` como submodule interno — **não instalar** `OpenZeppelin/openzeppelin-contracts` separadamente. Isso garante que ambos os remappings (`@openzeppelin/contracts/` e `@openzeppelin/contracts-upgradeable/`) apontem para a mesma release, necessário para verificação no Etherscan.
+- `foundry-chainlink-toolkit` é o pacote oficial para Foundry (Chainlink docs). Remapping usa o caminho interno `lib/foundry-chainlink-toolkit/lib/chainlink/contracts/` — verificar após instalação e ajustar se diferir.
+- Chainlink é instalado agora como dependência transversal; Spec 001 não o usa, mas Spec 002 (VRF v2.5) e Spec 006 (CRE) dependem dele.
+- `fs_permissions` em `foundry.toml` é necessário para que o Foundry Chainlink Toolkit leia seus arquivos de output durante testes.
+- Usar `--no-commit` em todos os `forge install`; commitar dependências em etapa separada após validar `forge build`.
+- **`contracts/governance/` não tem contratos em v1.** Em v1, parâmetros "governance-configurable" (fee rate, formation threshold) são gerenciados via `Ownable`/`AccessControl` apontando para a multi-sig (3-of-5 Gnosis Safe) — sem contrato de governança dedicado. `MandigaGovernor` e `TimelockController` são v2, ativados quando `OracleAggregator` e multi-adapter entrarem.
