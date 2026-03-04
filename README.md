@@ -14,18 +14,11 @@ Mandinga Protocol gives anyone access to lump-sum capital earlier than individua
 
 ```
 mandinga-protocol/
-├── contracts/             # Smart contracts + feature specs Interface documentation
-├── specs/                 # Feature specs (001–006)
-│       ├── 001-savings-account/
-│       ├── 002-savings-circle/
-│       ├── 003-solidarity-market/
-│       ├── 004-yield-engine/
-│       ├── 005-privacy-layer/
-│       └── 006-automation/
-├── front/            # Next.js 14 frontend (App Router)
-├── cre-circle/        # Chainlink CRE automation workflows
-├── Lightpaper.md              # Protocol lightpaper v0.2
-└── CLAUDE.md                  # AI development guidelines
+├── contracts/       # Smart contracts + feature specs Interface documentation
+├── front/           # Next.js 14 frontend (App Router)
+├── cre-circle/      # Chainlink CRE automation workflows
+├── Lightpaper.md    # Protocol lightpaper v0.2
+└── CLAUDE.md        # AI development guidelines
 ```
 
 ## Prerequisites

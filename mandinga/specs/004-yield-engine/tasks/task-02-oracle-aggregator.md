@@ -11,7 +11,9 @@
 
 ## Decision Record
 
-**February 2026:** `OracleAggregator` deferred to v2. With a single yield source (Aave V3 only in v1), multi-source rate aggregation and median-based circuit breaking are not needed. v1 reads Aave's supply rate directly from `IPoolDataProvider.getReserveData()`. See research.md Decision 10 and Spec 004 v0.4 changelog.
+**February 2026:** `OracleAggregator` deferred to v2. With a single yield source in v1, multi-source rate aggregation and median-based circuit breaking are not needed.
+
+**March 2026 (v0.5 update):** v1 yield source changed from Aave V3 to Spark USDC Vault (Sky Savings Rate, `UsdcVaultL2` on Base). v1 reads the conversion rate directly from `rateProvider.getConversionRate()` via the ERC4626 vault — no `IPoolDataProvider` or Chainlink feeds required. Aave references in this task are obsolete. See Spec 004 v0.5 changelog.
 
 ---
 
@@ -31,7 +33,7 @@ See: Spec 004, US-003 (Oracle Integration).
 
 ## Acceptance Criteria
 
-- [ ] Contract file created at `contracts/yield/OracleAggregator.sol`
+- [ ] Contract file created at `backend/contracts/yield/OracleAggregator.sol`
 - [ ] Constructor accepts an array of Chainlink AggregatorV3Interface addresses
 - [ ] `getRate() returns (uint256 rate, bool circuitBreakerActive)`:
   - Queries all registered feeds
@@ -44,7 +46,7 @@ See: Spec 004, US-003 (Oracle Integration).
 - [ ] `setFallbackRate(uint256 rateBps)` — owner-only, sets the conservative floor APY
 - [ ] `setMaxDeviation(uint256 bps)` — owner-only, configures the deviation threshold (default: 2000 = 20%)
 - [ ] `setMaxStaleness(uint256 seconds)` — owner-only, configures the freshness window (default: 3600)
-- [ ] Unit tests in `test/unit/OracleAggregator.test.ts`:
+- [ ] Unit tests in `backend/test/unit/OracleAggregator.t.sol` (Forge):
   - Happy path: 3 fresh feeds → correct median returned
   - Stale feed: 1 of 3 feeds stale → median of remaining 2 used
   - Deviation trip: 1 feed deviates 25% → circuit breaker active
@@ -56,8 +58,8 @@ See: Spec 004, US-003 (Oracle Integration).
 
 ## Output Files
 
-- `contracts/yield/OracleAggregator.sol`
-- `test/unit/OracleAggregator.test.ts`
+- `backend/contracts/yield/OracleAggregator.sol`
+- `backend/test/unit/OracleAggregator.t.sol`
 
 ---
 
