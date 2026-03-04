@@ -11,7 +11,7 @@
 
 ## Objective
 
-Initialize the Foundry project at repository root (`/mandinga`) with `contracts/` as the Solidity source directory. Install OpenZeppelin Contracts v5 and Chainlink dependencies as git submodules via Foundry.
+Initialize the Foundry project at repository root with `contracts/` as the Solidity source directory (not `backend/contracts`). Install OpenZeppelin Contracts and Chainlink dependencies.
 
 ---
 
