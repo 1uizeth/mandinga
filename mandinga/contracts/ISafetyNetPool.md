@@ -1,7 +1,7 @@
-# Interface Contract: ISolidarityMarket
+# Interface Contract: ISafetyNetPool
 
-**File:** `backend/contracts/interfaces/ISolidarityMarket.sol`
-**Spec:** 003 — Solidarity Market
+**File:** `backend/contracts/interfaces/ISafetyNetPool.sol`
+**Spec:** 003 — Safety Net Pool
 **Solidity:** ^0.8.20
 
 ---

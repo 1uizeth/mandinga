@@ -1,6 +1,6 @@
 # Task 003-01 — Implement SafetyNetPool Contract
 
-> **⚠ Superseded.** Spec 003 was rewritten from Solidarity Market (bilateral vouching) to Safety Net Pool (installment coverage). This task file reflects the old model and must be regenerated from Spec 003 v1.0 before implementation begins.
+> **⚠ Superseded.** Spec 003 was rewritten from Safety Net Pool (bilateral vouching) to Safety Net Pool (installment coverage). This task file reflects the old model and must be regenerated from Spec 003 v1.0 before implementation begins.
 
 **Spec:** 003 — Safety Net Pool (v1.0)
 **Milestone:** 4
@@ -13,13 +13,13 @@
 
 ## Objective
 
-Implement `SolidarityMarket.sol` — the peer vouching layer. Manages vouch creation, locking, income accrual (interest + payout share), and expiry/renewal.
+Implement `SafetyNetPool.sol` — the peer vouching layer. Manages vouch creation, locking, income accrual (interest + payout share), and expiry/renewal.
 
 ---
 
 ## Context
 
-The Solidarity Market sits on top of the savings account and savings circle. A vouch is an economic relationship: the voucher locks capital in their savings account as backing for another member, earns passive income, and benefits when that member is selected for a payout.
+The Safety Net Pool sits on top of the savings account and savings circle. A vouch is an economic relationship: the voucher locks capital in their savings account as backing for another member, earns passive income, and benefits when that member is selected for a payout.
 
 See: Spec 003 all user stories, plan.md §3.3.
 
@@ -28,7 +28,7 @@ See: Spec 003 all user stories, plan.md §3.3.
 ## Acceptance Criteria
 
 ### Contract Structure
-- [ ] Contract at `contracts/core/SolidarityMarket.sol`
+- [ ] Contract at `contracts/core/SafetyNetPool.sol`
 - [ ] Constructor takes: `ISavingsAccount savingsAccount`, `ISavingsCircle savingsCircle`
 - [ ] Emits `SavingsCircle.MemberSelected` event to trigger payout share distribution (implement as a listener via `savingsCircle.registerPayoutListener(address(this))` or equivalent callback pattern)
 
@@ -89,7 +89,7 @@ See: Spec 003 all user stories, plan.md §3.3.
 - [ ] `getVouchingOpportunities(uint256 circleId) returns (VouchOpportunity[])`: returns members seeking vouches for a given circle tier, with their ZK history proof included
 
 ### Tests
-- [ ] Unit tests at `test/unit/SolidarityMarket.test.ts`:
+- [ ] Unit tests at `test/unit/SafetyNetPool.test.ts`:
   - `createVouch` → vouch locked, voucher obligation increased
   - `createVouch` exceeding 80% limit → reverts
   - `acceptVouch` by non-vouchedId member → reverts
@@ -106,8 +106,8 @@ See: Spec 003 all user stories, plan.md §3.3.
 
 ## Output Files
 
-- `contracts/core/SolidarityMarket.sol`
-- `test/unit/SolidarityMarket.test.ts`
+- `contracts/core/SafetyNetPool.sol`
+- `test/unit/SafetyNetPool.test.ts`
 - `test/integration/vouch_and_selection.test.ts`
 
 ---

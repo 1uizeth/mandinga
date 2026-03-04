@@ -8,9 +8,9 @@
 
 ## Summary
 
-This is production-quality Solidity code with Chainlink VRF v2.5 already integrated, a Foundry test suite, and a Chainlink CRE automation workflow skeleton. It covers the circle mechanics layer of our spec in substantial depth. It does not touch the savings account, yield engine, solidarity market, or privacy layer at all.
+This is production-quality Solidity code with Chainlink VRF v2.5 already integrated, a Foundry test suite, and a Chainlink CRE automation workflow skeleton. It covers the circle mechanics layer of our spec in substantial depth. It does not touch the savings account, yield engine, safety net pool, or privacy layer at all.
 
-**Bottom line:** roughly 40% of what we need to build for the `SavingsCircle` primitive already exists here. The VRF draw consumer can be used as-is. The vault and factory need adaptation, not replacement. The three missing layers (yield, solidarity market, privacy) are greenfield.
+**Bottom line:** roughly 40% of what we need to build for the `SavingsCircle` primitive already exists here. The VRF draw consumer can be used as-is. The vault and factory need adaptation, not replacement. The three missing layers (yield, safety net pool, privacy) are greenfield.
 
 ---
 
@@ -37,7 +37,7 @@ Already branded: `ERC20Claim("Mandinga Claim", "MCLM")` and `PositionNFT("Mandin
 
 **What to adapt:**
 - Add `YieldRouter` address as a constructor parameter, passed through to each vault
-- Add `SolidarityMarket` address for future vouching integration
+- Add `SafetyNetPool` address for future vouching integration
 - The `circleId` hash (via `CircleIdLib`) is a good pattern — keep it, but note it exposes circle parameters publicly. In the privacy version, the circleId should be an opaque commitment.
 
 ---
@@ -162,7 +162,7 @@ These are entirely absent from the repo and must be built greenfield:
 | `AaveAdapter.sol` | Spec 004 | Aave V3 yield source |
 | `OndoAdapter.sol` | Spec 004 | Real-world yield source |
 | `OracleAggregator.sol` | Spec 004 | Chainlink rate feeds |
-| `SolidarityMarket.sol` | Spec 003 | Vouching market |
+| `SafetyNetPool.sol` | Spec 003 | Vouching market |
 | `EmergencyModule.sol` | Spec 001 | Timelock emergency exit |
 | ZK circuits | Spec 005 | Balance range proofs |
 | `MandigaGovernor.sol` | plan.md | One-member-one-vote governance |
@@ -201,7 +201,7 @@ Phase 1 (Yield):        YieldRouter → AaveAdapter → OracleAggregator (greenf
 Phase 2 (Savings):      SavingsAccount → EmergencyModule (greenfield)
 Phase 3 (Circle):       Adapt CircleVault + integrate YieldRouter + SavingsAccount
                         DrawConsumer and CircleFactory: minimal changes needed
-Phase 4 (Solidarity):   SolidarityMarket (greenfield)
+Phase 4 (Safety Net Pool):   SafetyNetPool (greenfield)
 Phase 5 (Automation):   Expand CRE workflow (extend existing skeleton)
 Phase 6 (Governance):   MandigaGovernor + parameter controls
 Phase 7 (Privacy):      ZK circuits + verifiers (depends on Phase 0 decision)

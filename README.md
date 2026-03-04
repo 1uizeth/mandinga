@@ -18,7 +18,7 @@ mandinga-protocol/
 ├── specs/                 # Feature specs (001-006)
 │       ├── 001-savings-account/
 │       ├── 002-savings-circle/
-│       ├── 003-solidarity-market/
+│       ├── 003-safety-net-pool/
 │       ├── 004-yield-engine/
 │       ├── 005-privacy-layer/
 │       └── 006-automation/
@@ -76,7 +76,7 @@ bun install
 |---|---------|--------|
 | [001](./specs/001-savings-account/) | Savings Account | Implemented |
 | [002](./specs/002-savings-circle/) | Savings Circle | In progress |
-| [003](./specs/003-solidarity-market/) | Solidarity Market | Specified |
+| [003](./specs/003-safety-net-pool/) | Safety Net Pool | Specified |
 | [004](./specs/004-yield-engine/) | Yield Engine (Spark USDC Vault v1) | Specified |
 | [005](./specs/005-privacy-layer/) | Privacy Layer | Specified |
 | [006](./specs/006-automation/) | CRE Automation | In progress |

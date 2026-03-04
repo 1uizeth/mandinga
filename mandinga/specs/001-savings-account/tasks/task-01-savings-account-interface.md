@@ -11,7 +11,7 @@
 
 ## Objective
 
-Define the `ISavingsAccount` Solidity interface. This is the public API surface for the core savings primitive. All other contracts (SavingsCircle, SolidarityMarket) interact with savings accounts only through this interface.
+Define the `ISavingsAccount` Solidity interface. This is the public API surface for the core savings primitive. All other contracts (SavingsCircle, SafetyNetPool) interact with savings accounts only through this interface.
 
 ---
 

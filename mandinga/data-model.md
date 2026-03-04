@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** February 2026
-**Source specs:** 001 (SavingsAccount), 002 (SavingsCircle), 003 (SolidarityMarket), 004 (YieldEngine)
+**Source specs:** 001 (SavingsAccount), 002 (SavingsCircle), 003 (SafetyNetPool), 004 (YieldEngine)
 
 ---
 
@@ -15,7 +15,7 @@ SavingsAccount
     ↑ circleObligation set by
 SavingsCircle
     ↑ vouch references
-SolidarityMarket
+SafetyNetPool
 ```
 
 ---
@@ -141,7 +141,7 @@ EMERGENCY   → emergency state declared
 
 ---
 
-## 4. SolidarityMarket
+## 4. SafetyNetPool
 
 ### Vouch (on-chain struct)
 
@@ -177,7 +177,7 @@ EXPIRED     → circle completed or vouch duration elapsed
 ```
 SavingsAccount
   ← writes circleObligationShares: SavingsCircle (via setCircleObligation)
-  ← writes solidarityDebtShares: SolidarityMarket (at vouch creation)
+  ← writes solidarityDebtShares: SafetyNetPool (at vouch creation)
   ← reads sharesBalance: YieldRouter (balanceOf)
   ← deposits/redeems: YieldRouter (deposit/withdraw)
 
@@ -186,7 +186,7 @@ SavingsCircle
   → calls SavingsAccount.activateCircle() on join
   → requests VRF from Chainlink VRFCoordinator
 
-SolidarityMarket
+SafetyNetPool
   → calls SavingsAccount.setSolidarityDebt() at vouch creation
   → receives callback from SavingsCircle at MemberSelected event
   → distributes payout share to voucher's SavingsAccount
@@ -215,8 +215,8 @@ YieldRouter
 | YieldRouter | `CapitalAllocated` | `amount`, `timestamp` |
 | YieldRouter | `YieldHarvested` | `grossYield`, `fee`, `bufferContribution`, `netYield`, `timestamp` |
 | YieldRouter | `CircuitBreakerTripped` | `reason`, `timestamp` |
-| SolidarityMarket | `VouchCreated` | `vouchId`, `circleId` |
-| SolidarityMarket | `PayoutShareDistributed` | `vouchId`, `amount` |
+| SafetyNetPool | `VouchCreated` | `vouchId`, `circleId` |
+| SafetyNetPool | `PayoutShareDistributed` | `vouchId`, `amount` |
 
 ---
 
@@ -233,4 +233,4 @@ YieldRouter
 | YieldRouter | `AdapterNotFound` | `adapter` |
 | SavingsCircle | `RoundNotReady` | `nextRoundTimestamp`, `current` |
 | SavingsCircle | `CircleNotActive` | `status` |
-| SolidarityMarket | `VouchExceedsDiversificationFloor` | `amount`, `maxAllowed` |
+| SafetyNetPool | `VouchExceedsDiversificationFloor` | `amount`, `maxAllowed` |

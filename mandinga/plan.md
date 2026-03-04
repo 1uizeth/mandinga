@@ -27,7 +27,7 @@ Mandinga Protocol is a four-layer system:
 │                     │         │                         │
 │  SavingsAccount     │         │  YieldRouter            │
 │  SavingsCircle      │         │  YieldSourceAdapter     │
-│  SolidarityMarket   │         │  OracleAggregator       │
+│  SafetyNetPool   │         │  OracleAggregator       │
 │  CircleBuffer       │         │  FeeCollector           │
 └──────────┬──────────┘         └──────────┬──────────────┘
            │                               │
@@ -55,7 +55,7 @@ mandinga-protocol/
 │   │   ├── core/
 │   │   │   ├── SavingsAccount.sol
 │   │   │   ├── SavingsCircle.sol
-│   │   │   ├── SolidarityMarket.sol
+│   │   │   ├── SafetyNetPool.sol
 │   │   │   └── CircleBuffer.sol
 │   │   ├── yield/
 │   │   │   ├── YieldRouter.sol
@@ -65,19 +65,19 @@ mandinga-protocol/
 │   │   └── interfaces/
 │   │       ├── ISavingsAccount.sol
 │   │       ├── ISavingsCircle.sol
-│   │       ├── ISolidarityMarket.sol
+│   │       ├── ISafetyNetPool.sol
 │   │       ├── IYieldRouter.sol
 │   │       └── IYieldSourceAdapter.sol  (adapter pattern — v2 adds OndoAdapter etc.)
 │   ├── script/
 │   │   ├── DeployYieldEngine.s.sol
 │   │   ├── DeploySavingsAccount.s.sol
 │   │   ├── DeploySavingsCircle.s.sol
-│   │   └── DeploySolidarityMarket.s.sol
+│   │   └── DeploySafetyNetPool.s.sol
 │   ├── test/
 │   │   ├── unit/
 │   │   │   ├── SavingsAccount.t.sol
 │   │   │   ├── SavingsCircle.t.sol
-│   │   │   ├── SolidarityMarket.t.sol
+│   │   │   ├── SafetyNetPool.t.sol
 │   │   │   └── YieldRouter.t.sol
 │   │   ├── integration/
 │   │   │   ├── FullCircleLifecycle.t.sol
@@ -106,7 +106,7 @@ mandinga-protocol/
 │   │   │   │   └── [circleId]/
 │   │   │   │       └── page.tsx       (circle status + round countdown)
 │   │   │   └── solidarity/
-│   │   │       └── page.tsx           (solidarity market browse + vouch)
+│   │   │       └── page.tsx           (safety net pool browse + deposit)
 │   │   │
 │   │   ├── components/
 │   │   │   ├── atoms/                 (indivisible primitives — no contract deps)
@@ -145,7 +145,7 @@ mandinga-protocol/
 │   │   │   ├── useSavingsAccount.ts
 │   │   │   ├── useSavingsCircle.ts
 │   │   │   ├── useYieldRouter.ts
-│   │   │   └── useSolidarityMarket.ts
+│   │   │   └── useSafetyNetPool.ts
 │   │   │
 │   │   ├── lib/
 │   │   │   ├── contracts.ts           (contract addresses per chain)
@@ -154,7 +154,7 @@ mandinga-protocol/
 │   │   │   │   ├── SavingsAccount.ts
 │   │   │   │   ├── SavingsCircle.ts
 │   │   │   │   ├── YieldRouter.ts
-│   │   │   │   └── SolidarityMarket.ts
+│   │   │   │   └── SafetyNetPool.ts
 │   │   │   └── utils.ts
 │   │   │
 │   │   └── types/                     (shared TypeScript types)
@@ -218,7 +218,7 @@ sync-abi:
 	cp out/SavingsAccount.sol/SavingsAccount.json ../frontend/src/lib/abi/SavingsAccount.json
 	cp out/SavingsCircle.sol/SavingsCircle.json   ../frontend/src/lib/abi/SavingsCircle.json
 	cp out/YieldRouter.sol/YieldRouter.json       ../frontend/src/lib/abi/YieldRouter.json
-	cp out/SolidarityMarket.sol/SolidarityMarket.json ../frontend/src/lib/abi/SolidarityMarket.json
+	cp out/SafetyNetPool.sol/SafetyNetPool.json ../frontend/src/lib/abi/SafetyNetPool.json
 ```
 
 ---
@@ -280,7 +280,7 @@ struct Circle {
 4. Transfer pool amount to selected member's SavingsAccount (increases their balance AND circleObligation)
 5. Emit `MemberSelected` event (member identity shielded — event contains only circle ID and round number)
 
-### 3.3 SolidarityMarket.sol
+### 3.3 SafetyNetPool.sol
 
 Manages vouch creation, income distribution, and expiry.
 
@@ -370,14 +370,14 @@ Technology candidates for v2 (Aztec, Circom/Noir, Zama fhEVM/CoFHE) are document
 - [ ] Testnet deployment and multi-week testnet circle run
 - [ ] `frontend/`: circle status page with `useSavingsCircle` hook
 
-### Milestone 4: Solidarity Market (Weeks 21–28)
-- [ ] `backend/contracts/interfaces/ISolidarityMarket.sol` interface
-- [ ] `backend/contracts/core/SolidarityMarket.sol` — vouch creation, income distribution
-- [ ] `backend/test/unit/SolidarityMarket.t.sol` — unit tests
-- [ ] `backend/test/integration/VouchAndSelection.t.sol` — end-to-end vouch + circle + selection test
-- [ ] `backend/script/DeploySolidarityMarket.s.sol` — Forge deploy script
+### Milestone 4: Safety Net Pool (Weeks 21–28)
+- [ ] `backend/contracts/interfaces/ISafetyNetPool.sol` interface
+- [ ] `backend/contracts/core/SafetyNetPool.sol` — installment coverage, income distribution
+- [ ] `backend/test/unit/SafetyNetPool.t.sol` — unit tests
+- [ ] `backend/test/integration/CoverageAndSelection.t.sol` — end-to-end coverage + circle + selection test
+- [ ] `backend/script/DeploySafetyNetPool.s.sol` — Forge deploy script
 - [ ] Testnet deployment
-- [ ] `frontend/`: solidarity market browse and vouch interface
+- [ ] `frontend/`: safety net pool browse and deposit interface
 
 ### Milestone 5: Automation Layer — Chainlink CRE (Weeks 25–32)
 
@@ -406,7 +406,7 @@ Technology candidates for v2 (Aztec, Circom/Noir, Zama fhEVM/CoFHE) are document
 - [ ] **Molecules:** `TokenAmountDisplay`, `StatCard`, `FormField`, `WalletConnectButton`, `TransactionStatus`, `CountdownTimer`
 - [ ] **Organisms:** `SavingsPositionCard`, `DepositWithdrawPanel`, `YieldMetricsPanel`, `CircleStatusPanel`, `VouchCard`, `AppHeader`, `BottomNav`
 - [ ] **Templates:** `DashboardTemplate`, `CircleTemplate`, `SolidarityTemplate`
-- [ ] **Pages + hooks:** `app/` pages composing templates with `useSavingsAccount`, `useSavingsCircle`, `useYieldRouter`, `useSolidarityMarket`
+- [ ] **Pages + hooks:** `app/` pages composing templates with `useSavingsAccount`, `useSavingsCircle`, `useYieldRouter`, `useSafetyNetPool`
 - [ ] Wallet connect (RainbowKit or ConnectKit) — multi-chain support (Arbitrum, Base, Optimism)
 - [ ] Mobile-first responsive design (Tailwind + shadcn/ui)
 - [ ] PWA manifest and offline support
@@ -441,7 +441,7 @@ Round 1 executes (anyone calls executeRound())
   → SavingsAccount[C].balance += 2000 (full pool)
   → SavingsAccount[C].circleObligation += 2000
   → YieldRouter.allocate(2000) [full pool now earning yield for Member C]
-  → SolidarityMarket notified if Member C has a voucher → voucher payout share sent
+  → SafetyNetPool notified if Member C has a voucher → voucher payout share sent
 
 Rounds 2–9 execute similarly
   → Each non-selected member's obligation is settled automatically

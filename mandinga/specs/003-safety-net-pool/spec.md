@@ -10,7 +10,7 @@
 ## Changelog
 
 **v1.0 (March 2026):**
-- **Complete rewrite.** Replaced the bilateral vouching / Solidarity Market model with the Safety Net Pool — the mechanism that enables minimum installment coverage for circle participants.
+- **Complete rewrite.** Replaced the bilateral vouching / Safety Net Pool model with the Safety Net Pool — the mechanism that enables minimum installment coverage for circle participants.
 - **Core mechanic simplified.** The pool covers the gap between `minDepositPerRound` and `depositPerRound` when a member activates the minimum option. Previously the pool backed full `circleAllocation` per member — this is removed.
 - **Reallocation support added.** Pool temporarily covers an open position when a member is reallocated (Spec 002 US-008), giving the protocol time to find a replacement member.
 - **USDC throughout.** Replaced USDS.
@@ -127,7 +127,7 @@ Both create a gap the circle cannot absorb alone. The Safety Net Pool fills gap 
 ## Out of Scope for This Spec
 
 - Full `circleAllocation` backing per member (removed — pool covers installment gap only, not full pool size)
-- Bilateral vouching / Solidarity Market (removed — replaced by this spec)
+- Bilateral vouching / Safety Net Pool (removed — replaced by this spec)
 - Per-depositor attribution of which members their capital covered (pool is fungible; attribution enables gaming)
 - Secondary market for pool deposit positions (not in v1)
 

@@ -50,7 +50,7 @@ struct Position {
 | Signature | Caller | Description |
 |---|---|---|
 | `setCircleObligation(bytes32 shieldedId, uint256 shares)` | SavingsCircle only | Set `circleObligationShares`; reverts if `sharesBalance < shares` |
-| `setSolidarityDebt(bytes32 shieldedId, uint256 shares)` | SolidarityMarket only | Set `solidarityDebtShares` |
+| `setSolidarityDebt(bytes32 shieldedId, uint256 shares)` | SafetyNetPool only | Set `solidarityDebtShares` |
 | `activateEmergency()` | EmergencyModule only | Set global `emergencyActive = true` |
 
 ---
