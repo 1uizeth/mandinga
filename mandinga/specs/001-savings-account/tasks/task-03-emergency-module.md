@@ -25,7 +25,7 @@ See: Spec 001, US-005 (Emergency Exit).
 
 ## Acceptance Criteria
 
-- [ ] Contract at `contracts/core/EmergencyModule.sol`
+- [ ] Contract at `contracts/src/core/EmergencyModule.sol`
 - [ ] Constructor takes: `ISavingsAccount savingsAccount`, `address governance` (multi-sig or governor), `uint256 timelockDuration` (minimum: 7 days)
 - [ ] `proposeEmergency(string calldata reason)` — callable only by `governance`:
   - Records the proposal timestamp
@@ -56,7 +56,7 @@ See: Spec 001, US-005 (Emergency Exit).
 
 ## Output Files
 
-- `contracts/core/EmergencyModule.sol`
+- `contracts/src/core/EmergencyModule.sol`
 - `test/unit/EmergencyModule.t.sol`
 
 ---

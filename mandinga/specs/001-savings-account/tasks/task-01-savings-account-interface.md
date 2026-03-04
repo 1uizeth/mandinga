@@ -2,7 +2,7 @@
 
 **Spec:** 001 — Savings Account
 **Milestone:** 2
-**Status:** Blocked on Milestone 1 (Yield Engine must be deployed to testnet first)
+**Status:** Done ✓
 **Estimated effort:** 2 hours
 **Dependencies:** Task 001-00 (Foundry setup), Task 004-01 (IYieldRouter)
 **Parallel-safe:** Yes (interface definition doesn't require yield engine deployed)
@@ -25,8 +25,8 @@ See: Spec 001 for full user stories and acceptance criteria.
 
 ## Acceptance Criteria
 
-- [ ] Interface file created at `contracts/interfaces/ISavingsAccount.sol`
-- [ ] Interface includes all public-facing functions:
+- [x] Interface file created at `contracts/src/interfaces/ISavingsAccount.sol`
+- [x] Interface includes all public-facing functions:
   - `deposit(uint256 amount)` — deposit USDC; starts yielding immediately
   - `withdraw(uint256 amount)` — withdraw up to `balance - circleObligation`
   - `emergencyWithdraw()` — full withdrawal in emergency state (obligation released)
@@ -35,7 +35,7 @@ See: Spec 001 for full user stories and acceptance criteria.
   - `getCircleObligation(bytes32 shieldedId) returns (uint256)` — current locked amount
   - `setCircleObligation(bytes32 shieldedId, uint256 amount)` — callable only by SavingsCircle contract
   - `activateEmergency()` — callable only by EmergencyModule (timelock-gated)
-- [ ] Position struct defined inline:
+- [x] Position struct defined inline:
   ```solidity
   struct Position {
       uint256 balance;
@@ -45,24 +45,24 @@ See: Spec 001 for full user stories and acceptance criteria.
       bool emergencyExit;
   }
   ```
-- [ ] Events defined:
+- [x] Events defined:
   - `Deposited(bytes32 indexed shieldedId, uint256 amount)`
   - `Withdrawn(bytes32 indexed shieldedId, uint256 amount)`
   - `YieldCredited(bytes32 indexed shieldedId, uint256 amount)`
   - `ObligationSet(bytes32 indexed shieldedId, uint256 newObligation)`
   - `EmergencyExitExecuted(bytes32 indexed shieldedId, uint256 amountReturned)`
-- [ ] Custom errors defined (preferred over `require` strings for gas efficiency):
+- [x] Custom errors defined (preferred over `require` strings for gas efficiency):
   - `InsufficientWithdrawableBalance(uint256 requested, uint256 available)`
   - `PrincipalLockViolation(uint256 balance, uint256 obligation)`
   - `NotAuthorized(address caller, address expected)`
   - `EmergencyNotActive()`
-- [ ] Interface compiles successfully with `forge build`
+- [x] Interface compiles successfully with `forge build`
 
 ---
 
 ## Output Files
 
-- `contracts/interfaces/ISavingsAccount.sol`
+- `contracts/src/interfaces/ISavingsAccount.sol`
 
 ---
 
