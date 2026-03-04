@@ -207,7 +207,11 @@ The installment is an obligation — but enforcement is structural, not punitive
 
 The enforcement is architectural: the installment must be met each round, at minimum its covered half. There is no requirement to hold a specific balance at all times, no credit check, no identity tracking, and no permanent record. The only requirement is to pay the minimum when the round arrives — and the pool always stands ready to cover the rest.
 
-A member can also opt out of the Savings Circle feature entirely at any time. When they do, no further installments are owed and the contributions already paid are returned to their savings account. The savings account continues compounding. The Savings Circle can be reactivated whenever they are ready.
+After selection, the Safety Net Pool is no longer involved. The payout — the full pool amount — is locked to cover the selected member's remaining installment obligations automatically. The arithmetic guarantees this: the pool equals the total of all installments across the circle, and the remaining obligations after selection are always less than the pool received. The selected member keeps saving, and the yield leverage on the full amount is the return for doing so.
+
+A member can also opt out of the Savings Circle feature entirely at any time. When they do, contributions already paid are returned to their savings account minus a small opt-out fee. The fee reflects the disruption to the circle and flows directly to the remaining members — not to a pool or protocol treasury. The savings account continues compounding. The Savings Circle can be reactivated whenever they are ready.
+
+The opt-out fee scales with how much yield leverage has already been captured. Leaving before selection costs little — the yield premium has not yet been received. Leaving after selection costs more, proportional to the number of rounds the member has already benefited from the compounding advantage. This is not a penalty. It is the price of not following through on what you declared when you joined, paid to the people your exit disrupts.
 
 **What happens if you cannot pay even half?**
 

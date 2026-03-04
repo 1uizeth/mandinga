@@ -2,7 +2,7 @@
 
 **Purpose**: Validate that the Spec 002 (Savings Circle) and Spec 003 (Safety Net Pool) requirements adequately cover the boundary conditions and edge cases surfaced during simulator analysis. Each item tests whether the *requirement* is complete, clear, consistent, and measurable — not whether the implementation works.
 **Created**: 2026-03-02
-**Feature**: [Spec 002 — Savings Circle](../spec.md) · [Spec 003 — Safety Net Pool](../../003-solidarity-market/spec.md)
+**Feature**: [Spec 002 — Savings Circle](../spec.md) · [Spec 003 — Safety Net Pool](../../003-safety-net-pool/spec.md)
 **Trigger**: Edge case analysis from Circle Simulator (`mandinga-yield-scenarios.html`)
 
 ---

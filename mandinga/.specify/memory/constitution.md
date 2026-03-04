@@ -76,10 +76,10 @@ The protocol is composed of four primitives that must be built in dependency ord
 1. SavingsAccount     → The foundation. Self-custodial yield-bearing position.
 2. YieldEngine        → Routes deposits to real-world yield sources.
 3. SavingsCircle      → The ROSCA mechanic built on top of SavingsAccount.
-4. SolidarityMarket   → Vouching market built on top of SavingsCircle.
+4. SafetyNetPool   → Vouching market built on top of SavingsCircle.
 ```
 
-**Never build higher primitives before their dependencies are correct.** The SavingsCircle cannot be built correctly without a correct SavingsAccount. The SolidarityMarket cannot be built without a correct SavingsCircle.
+**Never build higher primitives before their dependencies are correct.** The SavingsCircle cannot be built correctly without a correct SavingsAccount. The SafetyNetPool cannot be built without a correct SavingsCircle.
 
 ---
 
@@ -101,7 +101,7 @@ These invariants must hold at all times. Any state transition that violates them
 - Verifiable on-chain randomness (e.g., Chainlink VRF) is the default selection mechanism
 - A circle never fails due to a single member's inability to contribute; the position pauses
 
-### SolidarityMarket Invariants
+### SafetyNetPool Invariants
 - A vouch is economically real: the vouched portion of the voucher's balance is locked for the vouch duration
 - The voucher cannot withdraw the vouched portion while the vouch is active
 - If the vouched member's position pauses, the vouch obligation also pauses (not defaults)
@@ -173,6 +173,6 @@ Before shipping any feature, ask: **could this exist without Ethereum?**
 Mandinga Protocol passes the Defipunk test on its core mechanics:
 - Trustless principal lock without custodian → requires smart contract enforcement
 - Verifiable randomness for fair selection → requires on-chain VRF
-- Solidarity market vouching with trustless lock → requires smart contract enforcement
+- Safety Net Pool with trustless lock → requires smart contract enforcement
 - Global, borderless, 24/7 operation without organiser → requires decentralised infrastructure
 - Privacy-first balance shielding → deferred to v2; will require ZK or FHE infrastructure when implemented

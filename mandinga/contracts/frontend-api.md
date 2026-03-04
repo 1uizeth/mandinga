@@ -53,8 +53,8 @@ app/page.tsx
 | `useNextRoundTimestamp(circleId)` | SavingsCircle | `getNextRoundTimestamp` | `bigint` |
 | `useBlendedAPY()` | YieldRouter | `getBlendedAPY` | `bigint` (BPS) |
 | `useTotalAllocated()` | YieldRouter | `getTotalAllocated` | `bigint` (USDC) |
-| `useVouch(vouchId)` | SolidarityMarket | `getVouch` | `Vouch` struct |
-| `useAccruedInterest(vouchId)` | SolidarityMarket | `getAccruedInterest` | `bigint` (USDC) |
+| `useVouch(vouchId)` | SafetyNetPool | `getVouch` | `Vouch` struct |
+| `useAccruedInterest(vouchId)` | SafetyNetPool | `getAccruedInterest` | `bigint` (USDC) |
 
 ---
 
@@ -66,8 +66,8 @@ app/page.tsx
 | `useWithdraw()` | SavingsAccount | `withdraw(uint256 amount)` | `amount: bigint` |
 | `useJoinCircle()` | SavingsCircle | `joinCircle(uint256 circleId)` | `circleId: bigint` |
 | `useExecuteRound()` | SavingsCircle | `executeRound(uint256 circleId)` | `circleId: bigint` |
-| `useCreateVouch()` | SolidarityMarket | `createVouch(...)` | See ISolidarityMarket |
-| `useClaimInterest()` | SolidarityMarket | `claimInterest(bytes32 vouchId)` | `vouchId: Hex` |
+| `useCreateVouch()` | SafetyNetPool | `createVouch(...)` | See ISafetyNetPool |
+| `useClaimInterest()` | SafetyNetPool | `claimInterest(bytes32 vouchId)` | `vouchId: Hex` |
 
 ---
 
@@ -81,7 +81,7 @@ export const CONTRACTS = {
     SavingsAccount: '0x...',
     YieldRouter: '0x...',
     SavingsCircle: '0x...',
-    SolidarityMarket: '0x...',
+    SafetyNetPool: '0x...',
   }
 } as const
 ```

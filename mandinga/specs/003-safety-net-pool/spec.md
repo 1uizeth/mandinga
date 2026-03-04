@@ -9,8 +9,11 @@
 
 ## Changelog
 
+**v1.1 (March 2026):**
+- **SNP scope explicitly limited to pre-selection.** Post-selection, the locked payout (N × depositPerRound) always covers remaining obligations by arithmetic. SNP is not involved in obligation settlement after a member is selected. Overview and problem statement updated to reflect this.
+
 **v1.0 (March 2026):**
-- **Complete rewrite.** Replaced the bilateral vouching / Solidarity Market model with the Safety Net Pool — the mechanism that enables minimum installment coverage for circle participants.
+- **Complete rewrite.** Replaced the bilateral vouching / Safety Net Pool model with the Safety Net Pool — the mechanism that enables minimum installment coverage for circle participants.
 - **Core mechanic simplified.** The pool covers the gap between `minDepositPerRound` and `depositPerRound` when a member activates the minimum option. Previously the pool backed full `circleAllocation` per member — this is removed.
 - **Reallocation support added.** Pool temporarily covers an open position when a member is reallocated (Spec 002 US-008), giving the protocol time to find a replacement member.
 - **USDC throughout.** Replaced USDS.
@@ -24,9 +27,11 @@
 
 The Safety Net Pool is the mechanism that makes minimum installment coverage possible. Members with idle savings capacity deposit capital into the pool, lock it for a declared duration, and earn yield on it — the same yield their capital would earn in a standalone Savings Account. In exchange, that capital covers the gap when circle participants need to use the minimum installment option.
 
+**The SNP operates pre-selection only.** Post-selection, the gross payout (N × depositPerRound) always fully covers remaining obligations (remainingRounds × depositPerRound) by arithmetic — no SNP involvement is possible or needed after a member is selected.
+
 **The core mechanic:**
 
-When a circle member activates the minimum installment option (Spec 002 US-007), they pay `minDepositPerRound` each round instead of the full `depositPerRound`. The Safety Net Pool covers the difference — `depositPerRound − minDepositPerRound` — each covered round. The member's `safetyNetDebtShares` increases by `convertToShares(depositPerRound − minDepositPerRound)` per covered round. At selection, `safetyNetDebtShares` is settled atomically from the gross payout before the net obligation is locked.
+When a circle member activates the minimum installment option (Spec 002 US-007) before selection, they pay `minDepositPerRound` each round instead of the full `depositPerRound`. The Safety Net Pool covers the difference — `depositPerRound − minDepositPerRound` — each covered round. The member's `safetyNetDebtShares` increases by `convertToShares(depositPerRound − minDepositPerRound)` per covered round. At selection, `safetyNetDebtShares` is settled atomically from the gross payout before the net obligation is locked. This is the only settlement event — there is no post-selection SNP debt.
 
 **What pool depositors get:**
 
@@ -127,7 +132,7 @@ Both create a gap the circle cannot absorb alone. The Safety Net Pool fills gap 
 ## Out of Scope for This Spec
 
 - Full `circleAllocation` backing per member (removed — pool covers installment gap only, not full pool size)
-- Bilateral vouching / Solidarity Market (removed — replaced by this spec)
+- Bilateral vouching / Safety Net Pool (removed — replaced by this spec)
 - Per-depositor attribution of which members their capital covered (pool is fungible; attribution enables gaming)
 - Secondary market for pool deposit positions (not in v1)
 

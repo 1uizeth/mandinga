@@ -9,6 +9,10 @@
 
 ## Changelog
 
+**v0.7 (March 2026):**
+- **Post-selection mechanics clarified.** SNP is pre-selection only. Post-selection, the locked payout (N × depositPerRound) always fully covers remaining obligations by arithmetic — SNP and minimum installment option are structurally irrelevant post-selection. AC-003-3 updated accordingly.
+- **Opt-out fee added (US-009).** Exiting the circle incurs a fee that scales with yield leverage already captured. Pre-selection: small flat fee. Post-selection: fee proportional to rounds elapsed since selection. Fee flows to remaining circle members — not to SNP, not to protocol treasury.
+
 **v0.6 (March 2026):**
 - **Installment-first model.** Primary user input is now `depositPerRound` (how much I can put away per period) + `duration` (for how long). `circleAllocation = N × depositPerRound` is derived at kickoff — the member never declares the pool size. The entry framing is: "how much can you put away, and for how long?" not "how much do you want?"
 - **Matching queue rekeyed.** Queue groups by `(depositPerRound, duration)` pairs. `circleAllocation` is a derived output of the kickoff algorithm, not a declared input.
@@ -97,7 +101,7 @@ The structural failure mode of traditional ROSCAs (the organiser, the early-payo
 **Acceptance Criteria:**
 - AC-003-1: At each round boundary, `circleObligationShares` is reduced by `convertToShares(depositPerRound)` — one installment's worth per round
 - AC-003-2: Settlement is triggered automatically when `executeRound()` is called (permissionless)
-- AC-003-3: If the member is using the minimum installment option (US-007), the Safety Net Pool covers the gap. `circleObligationShares` settlement still reduces by the full `convertToShares(depositPerRound)` — the obligation clock does not slow. The pool's contribution is tracked separately as `safetyNetDebtShares`
+- AC-003-3: Post-selection, the minimum installment option and Safety Net Pool are not involved in obligation settlement. The gross payout = N × depositPerRound is always sufficient to cover all remaining obligations (remainingRounds × depositPerRound). Settlement is always fully funded from the locked payout — no external coverage is needed or possible
 
 ### US-004 · Fair Selection
 **As a** member,
@@ -158,11 +162,24 @@ The structural failure mode of traditional ROSCAs (the organiser, the early-payo
 
 **Acceptance Criteria:**
 - AC-008-1: If a member cannot pay `minDepositPerRound` in a given round, the protocol surfaces a question: is there a smaller `depositPerRound` (and implied `minDepositPerRound`) the member can sustain?
-- AC-008-2: If yes — the protocol initiates reallocation. The member exits the current circle and is re-queued for a circle matching what they can afford. Their paid contributions to date are returned to their savings account, minus any `safetyNetDebtShares` owed to the Safety Net Pool
+- AC-008-2: If yes — the protocol initiates reallocation. The member exits the current circle and is re-queued for a circle matching what they can afford. Their paid contributions to date are returned to their savings account, minus any `safetyNetDebtShares` owed to the Safety Net Pool and minus the opt-out fee (US-009)
 - AC-008-3: The circle the member is leaving adjusts for the departed member. The protocol seeks a replacement from the queue whose `depositPerRound` and remaining `duration` fit the open position. The Safety Net Pool may temporarily cover the open slot while a replacement is found
 - AC-008-4: Remaining circle members experience at most a temporary reduction in `circleAllocation` while the replacement is being matched. Once a replacement joins, `circleAllocation` is restored. Members are notified of the adjustment and its resolution
-- AC-008-5: If no — the member cannot commit to any installment right now. The Savings Circle feature turns off. No further installments are owed. Contributions already paid are returned to the savings account minus any Safety Net Pool debt. The circle feature can be reactivated when the member is ready
+- AC-008-5: If no — the member cannot commit to any installment right now. The Savings Circle feature turns off. No further installments are owed. Contributions already paid are returned to the savings account minus any Safety Net Pool debt and minus the opt-out fee (US-009). The circle feature can be reactivated when the member is ready
 - AC-008-6: In no scenario does a member permanently lose contributions already made. The design corrects, not punishes
+
+### US-009 · Opt-Out Fee
+**As a** circle member who chooses to exit before the circle completes,
+**I want** to understand the cost of leaving,
+**So that** I join only when I intend to see the circle through.
+
+**Acceptance Criteria:**
+- AC-009-1: A member may opt out of the Savings Circle at any time. On opt-out, a fee is deducted from their returned contributions before they are credited back to the savings account
+- AC-009-2: **Pre-selection fee:** a small flat fee (governance-configurable). The member has not yet received the yield leverage premium and the fee reflects the disruption caused to the circle
+- AC-009-3: **Post-selection fee:** a fee proportional to the yield leverage already captured — calculated as `roundsElapsedSinceSelection × depositPerRound × exitFeeRate` (governance-configurable `exitFeeRate`). The longer the member has held the pool position and earned the compounding advantage, the higher the exit cost
+- AC-009-4: The fee is distributed pro-rata to the remaining circle members — not to the Safety Net Pool and not to a protocol treasury. It is a direct transfer from the member who broke commitment to the members who kept it
+- AC-009-5: Before confirming opt-out, the member is shown the exact fee amount, the calculation basis, and the destination (remaining circle members)
+- AC-009-6: A member who opts out post-selection forfeits the remaining locked pool position. Contributions to date net of SNP debt and the opt-out fee are returned to the savings account. The forfeited pool shares are distributed to remaining members
 
 ---
 

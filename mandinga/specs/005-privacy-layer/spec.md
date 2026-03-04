@@ -80,13 +80,13 @@ Public blockchains expose every transaction permanently and irreversibly. For a 
 - AC-004-5: The ZK circuit for balance proofs is audited independently of the broader contract audit
 
 ### US-005 · Savings History for Vouching (Privacy-Preserving)
-**As a** potential voucher browsing the Solidarity Market,
+**As a** potential voucher browsing the Safety Net Pool,
 **I want to** see a vouched member's savings behaviour (consistency, duration) without seeing their exact balance,
 **So that** I can make informed vouching decisions without compromising the vouched member's privacy.
 
 **Acceptance Criteria:**
 - AC-005-1: The protocol supports a ZK proof of savings history: a member can generate a proof that they have maintained a savings balance above a certain threshold for at least N months, without revealing the exact amount
-- AC-005-2: This proof is shown on the Solidarity Market as a trust signal (e.g., "3+ months consistent savings, balance in the $100–$500 range")
+- AC-005-2: This proof is shown on the Safety Net Pool as a trust signal (e.g., "3+ months consistent savings, balance in the $100–$500 range")
 - AC-005-3: The vouched member controls whether to share this proof — it is opt-in, not automatic
 - AC-005-4: No exact balance or transaction history is ever revealed in the vouching context
 - AC-005-5: The proof is freshness-bound (it must be regenerated at least monthly) to ensure it reflects current behaviour
