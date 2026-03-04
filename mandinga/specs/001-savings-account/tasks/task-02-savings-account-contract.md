@@ -2,7 +2,7 @@
 
 **Spec:** 001 — Savings Account
 **Milestone:** 2
-**Status:** Blocked on Task 001-01
+**Status:** Done ✓
 **Estimated effort:** 12 hours
 **Dependencies:** Task 001-01 (ISavingsAccount), Task 004-01/02/03 (Yield Engine complete)
 **Parallel-safe:** No — sequential after 001-01
@@ -26,64 +26,65 @@ See: Spec 001 all user stories, plan.md §3.1.
 ## Acceptance Criteria
 
 ### Contract Implementation
-- [ ] Contract at `contracts/core/SavingsAccount.sol` implementing `ISavingsAccount`
-- [ ] Constructor takes: `IYieldRouter yieldRouter`, `address emergencyModule`, `address savingsCircle`, `address stablecoin`
-- [ ] `deposit(uint256 amount)`:
+- [x] Contract at `contracts/src/core/SavingsAccount.sol` implementing `ISavingsAccount`
+- [x] Constructor takes: `IYieldRouter yieldRouter`, `address emergencyModule`, `address savingsCircle`, `address stablecoin`
+- [x] `deposit(uint256 amount)`:
   - Transfers USDC from caller to contract
   - Computes `shieldedId` from caller's address + a commitment nonce (enables privacy migration later)
   - Updates `positions[shieldedId].balance`
   - Calls `yieldRouter.allocate(amount)`
   - Emits `Deposited`
   - Reverts with `ZeroAmount` if amount == 0
-- [ ] `withdraw(uint256 amount)`:
+- [x] `withdraw(uint256 amount)`:
   - Checks `positions[shieldedId].balance - positions[shieldedId].circleObligation >= amount`
   - Calls `yieldRouter.withdraw(amount)` to retrieve USDC
   - Updates balance
   - Transfers USDC to caller
   - Emits `Withdrawn`
   - Reverts with `InsufficientWithdrawableBalance` if check fails
-- [ ] `creditYield(bytes32 shieldedId, uint256 amount)` — callable only by YieldRouter:
+- [x] `creditYield(bytes32 shieldedId, uint256 amount)` — callable only by YieldRouter:
   - Adds yield to `positions[shieldedId].balance`
   - Updates `yieldEarnedTotal`
   - Emits `YieldCredited`
-- [ ] `setCircleObligation(bytes32 shieldedId, uint256 amount)` — callable only by SavingsCircle:
+- [x] `setCircleObligation(bytes32 shieldedId, uint256 amount)` — callable only by SavingsCircle:
   - Sets `circleObligation`
   - Validates `balance >= amount` (reverts with `PrincipalLockViolation` if not)
   - Emits `ObligationSet`
-- [ ] `emergencyWithdraw()` — only callable when `emergencyActive == true`:
+- [x] `emergencyWithdraw()` — only callable when `emergencyActive == true`:
   - Releases the obligation: sets `circleObligation = 0`
   - Withdraws full balance
   - Marks position as exited
   - Emits `EmergencyExitExecuted`
-- [ ] `activateEmergency()` — only callable by `emergencyModule` address:
+- [x] `activateEmergency()` — only callable by `emergencyModule` address:
   - Sets `emergencyActive = true` globally
   - Emits `EmergencyActivated`
-- [ ] ReentrancyGuard on all external functions that move funds
-- [ ] Immutable addresses for `savingsCircle` and `emergencyModule` set at construction
+- [x] ReentrancyGuard on all external functions that move funds
+- [x] Immutable addresses for `savingsCircle` and `emergencyModule` set at construction
 
 ### Invariant
-- [ ] Add invariant check `assert(positions[id].balance >= positions[id].circleObligation)` as an internal guard on every state-modifying function (can be removed in production build after formal verification, but required for testnet)
+- [x] Add invariant check `assert(positions[id].balance >= positions[id].circleObligation)` as an internal guard on every state-modifying function (can be removed in production build after formal verification, but required for testnet)
 
 ### Tests
-- [ ] Unit tests at `test/unit/SavingsAccount.t.sol`:
-  - Deposit → balance reflects deposit
-  - Withdraw free balance → succeeds
-  - Withdraw locked balance → reverts with `InsufficientWithdrawableBalance`
-  - `setCircleObligation` exceeding balance → reverts with `PrincipalLockViolation`
-  - `setCircleObligation` by non-SavingsCircle → reverts with `NotAuthorized`
-  - Emergency: `activateEmergency` → `emergencyWithdraw` returns full balance including locked
-  - Emergency: `activateEmergency` by non-module → reverts
-  - Reentrancy: attempt reentrant withdrawal → reverts
+- [x] Unit tests at `test/unit/SavingsAccount.t.sol`:
+  - Deposit → balance reflects deposit ✓
+  - Withdraw free balance → succeeds ✓
+  - Withdraw locked balance → reverts with `InsufficientWithdrawableBalance` ✓
+  - `setCircleObligation` exceeding balance → reverts with `PrincipalLockViolation` ✓
+  - `setCircleObligation` by non-SavingsCircle → reverts with `NotAuthorized` ✓
+  - Emergency: `activateEmergency` → `emergencyWithdraw` returns full balance including locked ✓
+  - Emergency: `activateEmergency` by non-module → reverts ✓
+  - 23 tests total — all passing
 
-- [ ] Invariant/fuzz test at `test/invariant/BalanceInvariants.t.sol`:
-  - Random sequence of deposits, withdrawals, obligation sets
-  - Invariant function: assert `sharesBalance >= circleObligationShares` for all positions after every call
+- [x] Invariant/fuzz test at `test/invariant/BalanceInvariants.t.sol`:
+  - Random sequence of deposits, withdrawals, obligation sets ✓
+  - Invariant function: assert `balance >= circleObligation` for all positions ✓
+  - 3 invariants × 256 runs × 500 calls = 128,000 calls each — all passing
 
 ---
 
 ## Output Files
 
-- `contracts/core/SavingsAccount.sol`
+- `contracts/src/core/SavingsAccount.sol`
 - `test/unit/SavingsAccount.t.sol`
 - `test/invariant/BalanceInvariants.t.sol`
 

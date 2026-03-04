@@ -26,7 +26,7 @@ See: Spec 002 all user stories, plan.md §3.2 and §6 (data flow).
 ## Acceptance Criteria
 
 ### Contract Structure
-- [ ] Contract at `contracts/core/SavingsCircle.sol`
+- [ ] Contract at `contracts/src/core/SavingsCircle.sol`
 - [ ] Implements `VRFConsumerBaseV2Plus` (Chainlink VRF v2+)
 - [ ] Constructor takes: `ISavingsAccount savingsAccount`, `ICircleBuffer buffer`, `address vrfCoordinator`, `bytes32 keyHash`, `uint256 subscriptionId`
 
@@ -100,7 +100,7 @@ See: Spec 002 all user stories, plan.md §3.2 and §6 (data flow).
 
 ## Output Files
 
-- `contracts/core/SavingsCircle.sol`
+- `contracts/src/core/SavingsCircle.sol`
 - `test/unit/SavingsCircle.test.ts`
 - `test/integration/full_circle_lifecycle.test.ts`
 
