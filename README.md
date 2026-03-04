@@ -2,7 +2,7 @@
 
 A permissionless savings primitive that encodes rotating savings circle (ROSCA) logic into self-custodial, yield-bearing smart contracts.
 
-→ [Read the Lightpaper](./Lightpaper.md)
+→ [Read the Lightpaper](./mandinga-lightpaper.md)
 
 ---
 
