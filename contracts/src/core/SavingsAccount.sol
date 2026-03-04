@@ -170,6 +170,20 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
         emit EmergencyExitExecuted(shieldedId, fullBalance);
     }
 
+    /// @inheritdoc ISavingsAccount
+    /// @dev Callable only by the SavingsCircle contract. Used to credit ROSCA payouts
+    ///      (principal increase) to the selected member's balance.
+    function creditPrincipal(bytes32 shieldedId, uint256 amount) external onlySavingsCircle {
+        if (amount == 0) return;
+
+        _positions[shieldedId].balance += amount;
+        _positions[shieldedId].lastUpdateTimestamp = block.timestamp;
+
+        _assertInvariant(shieldedId);
+
+        emit YieldCredited(shieldedId, amount);
+    }
+
     /// @notice Credit yield earned from the router to a specific position.
     /// @dev Callable only by the YieldRouter. In the share-price-appreciation model the
     ///      router pushes yield to each credited position after harvesting.
