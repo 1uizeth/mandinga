@@ -92,4 +92,17 @@ interface ISavingsAccount {
     /// @notice Activate the global emergency flag, unlocking all positions.
     /// @dev Callable only by the EmergencyModule (timelock-gated).
     function activateEmergency() external;
+
+    /// @notice Credit a principal increase to a position (ROSCA payout mechanism).
+    /// @dev Callable only by the SavingsCircle contract. Semantically distinct from
+    ///      `creditYield` — this is a principal transfer, not yield accrual.
+    /// @param shieldedId Target position
+    /// @param amount USDC amount to credit (6 decimals)
+    function creditPrincipal(bytes32 shieldedId, uint256 amount) external;
+
+    /// @notice Compute the shieldedId for a given user address.
+    /// @dev v1: keccak256(abi.encodePacked(user, nonce)) where nonce = 0.
+    /// @param user The member's wallet address
+    /// @return shieldedId Derived opaque identity commitment
+    function computeShieldedId(address user) external view returns (bytes32 shieldedId);
 }
