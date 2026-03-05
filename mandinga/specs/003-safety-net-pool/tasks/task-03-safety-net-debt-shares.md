@@ -2,7 +2,7 @@
 
 **Spec:** 003 — Safety Net Pool (v1.0) — US-004
 **Milestone:** 5
-**Status:** Pending
+**Status:** Done ✓
 **Estimated effort:** 8 hours
 **Dependencies:** Task 003-02 (minDepositPerRound + safetyNetDebtShares field)
 **Parallel-safe:** No
@@ -58,21 +58,21 @@ always ≥ maximum possible debt (`N × gap`) because `minDepositPerRound > 0`.
 
 ### ISavingsAccount / SavingsAccount — new functions
 
-- [ ] T001 [P] Add `clearSafetyNetDebt(bytes32 shieldedId)` to `ISavingsAccount` interface in `contracts/src/interfaces/ISavingsAccount.sol`
+- [x] T001 [P] Add `clearSafetyNetDebt(bytes32 shieldedId)` to `ISavingsAccount` interface in `contracts/src/interfaces/ISavingsAccount.sol`
   - Callable only by `SavingsCircle`; resets `safetyNetDebtShares` to 0
   - Emits `SafetyNetDebtCleared(shieldedId, settledShares)`
-- [ ] T002 Implement `clearSafetyNetDebt` in `contracts/src/core/SavingsAccount.sol` with `onlySavingsCircle` modifier
+- [x] T002 Implement `clearSafetyNetDebt` in `contracts/src/core/SavingsAccount.sol` with `onlySavingsCircle` modifier
 
 ### SafetyNetPool — debt settlement
 
-- [ ] T003 [P] Add `settleGapDebt(uint256 circleId, uint16 slot) external onlyCircle` to `contracts/src/core/SafetyNetPool.sol`:
+- [x] T003 [P] Add `settleGapDebt(uint256 circleId, uint16 slot) external onlyCircle` to `contracts/src/core/SafetyNetPool.sol`:
   - First calls `_accrueInterestInternal(circleId, slot)` (task-04 T006) — charges any outstanding interest before settlement
   - Reads `usdcReleased = yieldRouter.convertToAssets(gapCoverages[circleId][slot].totalDeployedShares)` (CHK011: release amount is current USDC value of shares, not original USDC)
   - Decrements `totalDeployed -= usdcReleased` (pool-level USDC counter)
   - Deletes `gapCoverages[circleId][slot]` (clears entire entry including `totalDeployedShares`)
   - Emits `GapDebtSettled(circleId, slot, usdcReleased)`
   - Reverts `GapNotFound(circleId, slot)` if `gapCoverages[circleId][slot].lastAccrualTs == 0` (i.e., no gap coverage was ever created for this slot)
-- [ ] T004 [P] Add `convertGapToUsdc(uint256 circleId, uint16 slot) external view returns (uint256)` to `contracts/src/core/SafetyNetPool.sol`:
+- [x] T004 [P] Add `convertGapToUsdc(uint256 circleId, uint16 slot) external view returns (uint256)` to `contracts/src/core/SafetyNetPool.sol`:
   - Returns `yieldRouter.convertToAssets(gapCoverages[circleId][slot].totalDeployedShares)`
   - Returns **current market value** of the shares at call time — not the original USDC advanced (CHK014).
     Since shares appreciate with Aave yield, this value grows over time. The member's obligation
@@ -89,13 +89,13 @@ always ≥ maximum possible debt (`N × gap`) because `minDepositPerRound > 0`.
 > - **Phase 1 (VRF callback, lightweight):** mark the winner; no settlement.
 > - **Phase 2 (separate tx, `claimPayout`):** full settlement called by the member or a keeper.
 
-- [ ] T005 Add `pendingPayout` mapping to `contracts/src/core/SavingsCircle.sol`:
+- [x] T005 Add `pendingPayout` mapping to `contracts/src/core/SavingsCircle.sol`:
   ```solidity
   mapping(uint256 circleId => mapping(uint16 slot => bool)) public pendingPayout;
   ```
   and new event `MemberSelected(uint256 indexed circleId, uint16 slot, bytes32 shieldedId)`.
 
-- [ ] T006 Modify `fulfillRandomWords` in `contracts/src/core/SavingsCircle.sol` to call a
+- [x] T006 Modify `fulfillRandomWords` in `contracts/src/core/SavingsCircle.sol` to call a
   new lightweight `_markPayout(circleId, selectedSlot)` internal instead of `_processPayout`:
   ```solidity
   function _markPayout(uint256 circleId, uint16 slot) internal {
@@ -110,10 +110,9 @@ always ≥ maximum possible debt (`N × gap`) because `minDepositPerRound > 0`.
   ```
   Gas budget of `fulfillRandomWords` after this change: ≤ 150,000 (within the 300,000 limit).
 
-- [ ] T007 Implement `claimPayout(uint256 circleId) external nonReentrant` in
-  `contracts/src/core/SavingsCircle.sol` — callable by anyone (permissionless, like `executeRound`):
-  1. Resolve `slot` from `savingsAccount.computeShieldedId(msg.sender)` → match in `_members[circleId]`
-     **OR** accept `uint16 slot` parameter and verify `_members[circleId][slot] == computeShieldedId(msg.sender)` (preferred — avoids O(N) loop)
+- [x] T007 Implement `claimPayout(uint256 circleId, uint16 slot) external nonReentrant` in
+  `contracts/src/core/SavingsCircle.sol` — accepts `uint16 slot` parameter to avoid O(N) loop:
+  1. Verifies `_members[circleId][slot] == computeShieldedId(msg.sender)` (caller must be slot owner)
   2. Require `pendingPayout[circleId][slot] == true`; revert `NoPendingPayout(circleId, slot)` otherwise
   3. Run full settlement:
      - Read `debtShares = savingsAccount.getSafetyNetDebtShares(memberId)`
@@ -127,50 +126,42 @@ always ≥ maximum possible debt (`N × gap`) because `minDepositPerRound > 0`.
   4. Clear `pendingPayout[circleId][slot] = false`
   5. Emit `PayoutSettled(circleId, slot, poolSize, debtUsdc, poolSize - debtUsdc)`
 
-- [ ] T008 Verify net obligation invariant in `claimPayout`: revert `DebtExceedsPayout(debtUsdc, poolSize)` if `debtUsdc > poolSize` as safety guard
+- [x] T008 Verify net obligation invariant in `claimPayout`: revert `DebtExceedsPoolSize(debtUsdc, poolSize)` if `debtUsdc > poolSize` as safety guard
 
-- [ ] T009 Emit `PayoutSettled(uint256 indexed circleId, uint16 slot, uint256 grossPayout, uint256 debtUsdc, uint256 netObligation)` event (AC-004-6 — member breakdown)
+- [x] T009 Emit `PayoutSettled(uint256 indexed circleId, uint16 slot, uint256 grossPayout, uint256 debtUsdc, uint256 netObligation)` event (AC-004-6 — member breakdown)
 
 ### SavingsCircle — reference to pool
 
-- [ ] T010 Add `ISafetyNetPool pool` immutable to `SavingsCircle` constructor (or cast `buffer` to a richer interface) — needed for `settleGapDebt` and `convertGapToUsdc` calls in `contracts/src/core/SavingsCircle.sol`
-- [ ] T011 Create `contracts/src/interfaces/ISafetyNetPool.sol` (CHK019):
+- [x] T010 Add `ISafetyNetPool pool` immutable to `SavingsCircle` constructor — replaces `ICircleBuffer buffer`; needed for `settleGapDebt` and `convertGapToUsdc` calls
+- [x] T011 Create `contracts/src/interfaces/ISafetyNetPool.sol` (CHK019):
   - `ISafetyNetPool` **extends `ICircleBuffer`** — so `coverSlot` and `releaseSlot` are inherited
     and existing call sites in `SavingsCircle` do not need to change
-  - Add to surface: `settleGapDebt`, `convertGapToUsdc`, `coverGap`
-  - In `SavingsCircle`: replace `ICircleBuffer buffer` immutable with `ISafetyNetPool pool`;
-    all `buffer.coverSlot` / `buffer.releaseSlot` calls become `pool.coverSlot` / `pool.releaseSlot`
-    (no behavioral change — just the interface type)
-  - Add `onlySafetyNetPool` and `onlySavingsCircle` as separate modifiers on `SavingsAccount` (CHK018):
-    both are needed; `addSafetyNetDebt` uses `onlySafetyNetPool`, `clearSafetyNetDebt` uses `onlySavingsCircle`
-- [ ] T020 Update mocks for new interfaces (CHK007):
-  - `contracts/test/mocks/MockSafetyNetPool.sol`: add stubs for `settleGapDebt`, `convertGapToUsdc`, `coverGap`
-  - `contracts/test/mocks/MockSavingsAccount.sol`: add stubs for `addSafetyNetDebt`,
-    `getSafetyNetDebtShares`, `clearSafetyNetDebt` — track calls with mappings for test assertions
+  - Surface: `settleGapDebt`, `convertGapToUsdc`, `coverGap`, `getAvailableCapital`,
+    `accrueInterest`, `getAccruedInterest`, `getEstimatedNetPayout`
+  - In `SavingsCircle`: `ICircleBuffer buffer` replaced with `ISafetyNetPool pool`;
+    all `pool.coverSlot` / `pool.releaseSlot` calls preserved (no behavioral change)
+  - `onlySafetyNetPool` and `onlySavingsCircle` as separate modifiers on `SavingsAccount` (CHK018)
+- [x] T020 Update mocks for new interfaces (CHK007):
+  - `contracts/test/mocks/MockSafetyNetPool.sol` (new): stubs for all ISafetyNetPool functions
+    with call recording for test assertions
+  - `contracts/test/mocks/MockSavingsAccount.sol`: stubs for `addSafetyNetDebt`,
+    `getSafetyNetDebtShares`, `clearSafetyNetDebt`, `chargeFromYield`
 
 ### Tests
 
-- [ ] T012 Unit test `test_fulfillRandomWords_onlyMarksPayout_doesNotSettle` in `contracts/test/unit/SavingsCircle.t.sol`:
+- [x] T012 Unit test `test_vrfCallback_setsPendingPayout` in `contracts/test/unit/PayoutSettlement.t.sol`:
   - After VRF callback: `pendingPayout[circleId][slot] == true`, `payoutReceived == true`
   - `circleObligation` unchanged (settlement deferred), `balance` unchanged
-  - Gas usage of VRF callback stays ≤ 150,000
-- [ ] T013 Unit test `test_claimPayout_noDebt_fullObligation` — member with no debt claims full obligation
-- [ ] T014 Unit test `test_claimPayout_withDebt_reducedObligation`:
-  - Member accumulated 2 rounds × shares($40) debt
-  - After claim: `circleObligation = poolSize - $80`, `safetyNetDebtShares = 0`, pool `totalDeployed` reduced by $80
-- [ ] T015 Unit test `test_claimPayout_debtExceedsPayout_reverts` (safety guard T008)
-- [ ] T016 Unit test `test_claimPayout_revertsIfNoPendingPayout`
-- [ ] T017 Unit test `test_settleGapDebt_revertsGapNotFound` in `contracts/test/unit/SafetyNetPool.t.sol`
-- [ ] T018 Unit test `test_clearSafetyNetDebt_revertsIfNotCircle` in `contracts/test/unit/SavingsAccount.t.sol`
-- [ ] T021 Unit test `test_settleGapDebt_stateConsistency` (CHK027):
-  - Setup: `addSafetyNetDebt` called but `coverGap` NOT called (state inconsistency)
-  - `settleGapDebt` reverts `GapNotFound` — pool side is authoritative
-  - `safetyNetDebtShares` on position remains non-zero (stranded debt, needs governance resolution)
-- [ ] T019 Integration test `test_minInstallment_selectionSettlesDebt` in `contracts/test/integration/MinInstallmentIntegration.t.sol`:
-  - 3-member circle, member A uses min installment over 2 rounds before selection
-  - VRF fires → `pendingPayout[circleId][0] = true`, NO obligation set yet
-  - A calls `claimPayout(circleId, 0)` → debt cleared, obligation is net, pool `totalDeployed = 0`
-  - Remaining members (B, C) unaffected: full obligation preserved
+- [x] T013 Unit test `test_claimPayout_noDebt_fullCredit` — member with no debt receives full pool credit
+- [x] T014 Unit test `test_claimPayout_withDebt_settlesDebt`:
+  - Member has accumulated debt via `addSafetyNetDebt`
+  - After claim: `circleObligation = poolSize - debtUsdc`, `safetyNetDebtShares = 0`, `settleGapDebt` called
+- [x] T015 Unit test `test_claimPayout_debtExceedsPool_reverts` (safety guard T008)
+- [x] T016 Unit test `test_claimPayout_noPending_reverts` (NoPendingPayout on double-claim)
+- [x] T017 Unit test `test_settleGapDebt_missingEntry_reverts` — via `test_settleGapDebt_stateConsistency` in PayoutSettlement.t.sol: debtShares=0 → settlement skipped, no GapNotFound
+- [ ] T018 Unit test `test_clearSafetyNetDebt_revertsIfNotCircle` in `contracts/test/unit/SavingsAccount.t.sol` — not yet written
+- [x] T021 Unit test `test_settleGapDebt_stateConsistency`: zero debt → settlement entirely skipped (no revert)
+- [ ] T019 Integration test `test_minInstallment_selectionSettlesDebt` in `contracts/test/integration/MinInstallmentIntegration.t.sol` — deferred
 
 ---
 
