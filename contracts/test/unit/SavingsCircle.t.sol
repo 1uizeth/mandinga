@@ -76,7 +76,7 @@ contract SavingsCircleTest is Test {
     function _joinAll(uint256 circleId, address[] memory actors) internal {
         for (uint256 i = 0; i < actors.length; i++) {
             vm.prank(actors[i]);
-            sc.joinCircle(circleId, "");
+            sc.joinCircle(circleId);
         }
     }
 
@@ -164,7 +164,7 @@ contract SavingsCircleTest is Test {
             vm.expectEmit(true, false, false, true);
             emit MemberJoined(id, uint16(i), _shieldedId(members5[i]));
             vm.prank(members5[i]);
-            sc.joinCircle(id, "");
+            sc.joinCircle(id);
 
             // struct: poolSize(0) memberCount(1) contrib(2) roundDur(3) nextTs(4) filledSlots(5) ...
             (,,,,, uint16 filledSlots,,,,) = sc.circles(id);
@@ -181,7 +181,7 @@ contract SavingsCircleTest is Test {
     function test_joinCircle_setsObligation() public {
         uint256 id = _createDefault();
         vm.prank(alice);
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
 
         assertEq(sa.getCircleObligation(_shieldedId(alice)), CONTRIB);
     }
@@ -196,7 +196,7 @@ contract SavingsCircleTest is Test {
 
         vm.prank(extra);
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.CircleNotForming.selector, id));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     function test_joinCircle_revertsIfFull() public {
@@ -207,18 +207,18 @@ contract SavingsCircleTest is Test {
         // Test: try to join the now-active circle
         vm.prank(makeAddr("extra"));
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.CircleNotForming.selector, id));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     function test_joinCircle_revertsIfAlreadyMember() public {
         uint256 id = _createDefault();
         vm.prank(alice);
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
 
         bytes32 aliceId = _shieldedId(alice);
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.AlreadyMember.selector, id, aliceId));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     function test_joinCircle_revertsIfInsufficientBalance() public {
@@ -232,7 +232,7 @@ contract SavingsCircleTest is Test {
         vm.expectRevert(abi.encodeWithSelector(
             SavingsCircle.InsufficientBalance.selector, CONTRIB - 1, CONTRIB
         ));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     // ──────────────────────────────────────────────
@@ -394,7 +394,7 @@ contract SavingsCircleTest is Test {
 
         vm.expectEmit(true, false, false, true);
         emit MemberResumed(id, 0);
-        sc.resumePausedMember(id, 0, "");
+        sc.resumePausedMember(id, 0);
 
         assertFalse(sc.positionPaused(id, 0));
         assertEq(buf.releaseSlotCallCount(), 1);
@@ -405,7 +405,7 @@ contract SavingsCircleTest is Test {
         _joinAll(id, members5);
 
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.MemberNotPaused.selector, id, 0));
-        sc.resumePausedMember(id, 0, "");
+        sc.resumePausedMember(id, 0);
     }
 
     // ──────────────────────────────────────────────

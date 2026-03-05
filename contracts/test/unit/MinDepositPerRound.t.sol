@@ -97,9 +97,9 @@ contract MinDepositPerRoundTest is Test {
     // T020: activateMinInstallment reverts if circle is not FORMING
     function test_activateMinInstallment_afterActivation_reverts() public {
         uint256 id = sc.createCircle(POOL_SIZE, MEMBER_COUNT, ROUND_DUR, MIN_DEP);
-        vm.prank(alice); sc.joinCircle(id, "");
-        vm.prank(bob);   sc.joinCircle(id, "");
-        vm.prank(carol); sc.joinCircle(id, ""); // circle now ACTIVE
+        vm.prank(alice); sc.joinCircle(id);
+        vm.prank(bob);   sc.joinCircle(id);
+        vm.prank(carol); sc.joinCircle(id); // circle now ACTIVE
 
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.CircleAlreadyActive.selector, id));
         vm.prank(alice);
@@ -128,7 +128,7 @@ contract MinDepositPerRoundTest is Test {
             0,
             GAP * MEMBER_COUNT // required = (0+1) * gap * memberCount
         ));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     // T022: executeRound calls pool.coverGap for min-installment members
@@ -136,9 +136,9 @@ contract MinDepositPerRoundTest is Test {
         uint256 id = sc.createCircle(POOL_SIZE, MEMBER_COUNT, ROUND_DUR, MIN_DEP);
 
         vm.prank(alice); sc.activateMinInstallment(id);
-        vm.prank(alice); sc.joinCircle(id, "");
-        vm.prank(bob);   sc.joinCircle(id, "");
-        vm.prank(carol); sc.joinCircle(id, "");
+        vm.prank(alice); sc.joinCircle(id);
+        vm.prank(bob);   sc.joinCircle(id);
+        vm.prank(carol); sc.joinCircle(id);
 
         (, , , , uint256 nextTs, , , , ,) = sc.circles(id);
         vm.warp(nextTs);
@@ -154,9 +154,9 @@ contract MinDepositPerRoundTest is Test {
     function test_executeRound_skipsNonMinInstallmentMembers() public {
         uint256 id = sc.createCircle(POOL_SIZE, MEMBER_COUNT, ROUND_DUR, MIN_DEP);
         // nobody activates min installment
-        vm.prank(alice); sc.joinCircle(id, "");
-        vm.prank(bob);   sc.joinCircle(id, "");
-        vm.prank(carol); sc.joinCircle(id, "");
+        vm.prank(alice); sc.joinCircle(id);
+        vm.prank(bob);   sc.joinCircle(id);
+        vm.prank(carol); sc.joinCircle(id);
 
         (, , , , uint256 nextTs, , , , ,) = sc.circles(id);
         vm.warp(nextTs);
@@ -172,9 +172,9 @@ contract MinDepositPerRoundTest is Test {
 
         vm.prank(alice); sc.activateMinInstallment(id);
         vm.prank(bob);   sc.activateMinInstallment(id);
-        vm.prank(alice); sc.joinCircle(id, "");
-        vm.prank(bob);   sc.joinCircle(id, "");
-        vm.prank(carol); sc.joinCircle(id, "");
+        vm.prank(alice); sc.joinCircle(id);
+        vm.prank(bob);   sc.joinCircle(id);
+        vm.prank(carol); sc.joinCircle(id);
 
         (, , , , uint256 nextTs, , , , ,) = sc.circles(id);
         vm.warp(nextTs);
@@ -188,9 +188,9 @@ contract MinDepositPerRoundTest is Test {
         uint256 id = sc.createCircle(POOL_SIZE, MEMBER_COUNT, ROUND_DUR, MIN_DEP);
 
         vm.prank(alice); sc.activateMinInstallment(id);
-        vm.prank(alice); sc.joinCircle(id, "");
-        vm.prank(bob);   sc.joinCircle(id, "");
-        vm.prank(carol); sc.joinCircle(id, "");
+        vm.prank(alice); sc.joinCircle(id);
+        vm.prank(bob);   sc.joinCircle(id);
+        vm.prank(carol); sc.joinCircle(id);
 
         // Drain pool after joining (depth check already passed)
         pool.setAvailableCapital(0);

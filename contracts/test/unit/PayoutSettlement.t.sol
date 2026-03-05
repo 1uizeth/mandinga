@@ -59,9 +59,9 @@ contract PayoutSettlementTest is Test {
         if (aliceUsesMinDep) {
             vm.prank(alice); sc.activateMinInstallment(circleId);
         }
-        vm.prank(alice); sc.joinCircle(circleId, "");
-        vm.prank(bob);   sc.joinCircle(circleId, "");
-        vm.prank(carol); sc.joinCircle(circleId, "");
+        vm.prank(alice); sc.joinCircle(circleId);
+        vm.prank(bob);   sc.joinCircle(circleId);
+        vm.prank(carol); sc.joinCircle(circleId);
     }
 
     function _runRoundToSlot0() internal {

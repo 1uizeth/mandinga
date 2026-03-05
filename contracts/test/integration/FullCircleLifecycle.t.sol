@@ -104,7 +104,7 @@ contract FullCircleLifecycleTest is Test {
         uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR, 0);
         for (uint256 i = 0; i < MEMBER_COUNT; i++) {
             vm.prank(actors[i]);
-            msc.joinCircle(circleId, "");
+            msc.joinCircle(circleId);
         }
 
         // Verify all members have contributionPerMember locked
@@ -185,7 +185,7 @@ contract FullCircleLifecycleTest is Test {
         uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR, 0);
         for (uint256 i = 0; i < MEMBER_COUNT; i++) {
             vm.prank(actors[i]);
-            msc.joinCircle(circleId, "");
+            msc.joinCircle(circleId);
         }
 
         (,,,,uint256 nextTs,,,,, ) = msc.circles(circleId);
@@ -220,7 +220,7 @@ contract FullCircleLifecycleTest is Test {
         uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR, 0);
         for (uint256 i = 0; i < MEMBER_COUNT; i++) {
             vm.prank(actors[i]);
-            msc.joinCircle(circleId, "");
+            msc.joinCircle(circleId);
         }
 
         (,,,,uint256 nextTs,,,,, ) = msc.circles(circleId);

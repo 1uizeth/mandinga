@@ -234,10 +234,8 @@ contract SavingsCircle is VRFConsumerBaseV2, ReentrancyGuard {
     }
 
     /// @notice Join a circle in FORMING state.
-    /// @param circleId    Target circle
-    /// @param balanceProof v1: unused (on-chain balance check performed instead).
-    function joinCircle(uint256 circleId, bytes calldata balanceProof) external nonReentrant {
-        balanceProof;
+    /// @param circleId Target circle
+    function joinCircle(uint256 circleId) external nonReentrant {
 
         Circle storage c = circles[circleId];
         if (c.status != CircleStatus.FORMING) revert CircleNotForming(circleId);
@@ -453,12 +451,7 @@ contract SavingsCircle is VRFConsumerBaseV2, ReentrancyGuard {
     }
 
     /// @notice Allow a paused member to resume once their balance is restored.
-    function resumePausedMember(
-        uint256 circleId,
-        uint16 slot,
-        bytes calldata balanceProof
-    ) external nonReentrant {
-        balanceProof;
+    function resumePausedMember(uint256 circleId, uint16 slot) external nonReentrant {
 
         Circle storage c = circles[circleId];
         if (c.status != CircleStatus.ACTIVE) revert CircleNotActive(circleId);

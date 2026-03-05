@@ -83,9 +83,9 @@ contract PoolCoverageIntegrationTest is Test {
 
         // Create and fill the circle
         circleId = sc.createCircle(POOL_SIZE, MEMBER_COUNT, ROUND_DUR, 0);
-        vm.prank(alice); sc.joinCircle(circleId, "");
-        vm.prank(bob);   sc.joinCircle(circleId, "");
-        vm.prank(carol); sc.joinCircle(circleId, "");
+        vm.prank(alice); sc.joinCircle(circleId);
+        vm.prank(bob);   sc.joinCircle(circleId);
+        vm.prank(carol); sc.joinCircle(circleId);
         // circle is now ACTIVE (all 3 slots filled)
     }
 
@@ -137,7 +137,7 @@ contract PoolCoverageIntegrationTest is Test {
         sa.setPosition(aliceId, CONTRIBUTION * 2 + 1e6, CONTRIBUTION);
 
         // 5. Resume alice
-        sc.resumePausedMember(circleId, aliceSlot, "");
+        sc.resumePausedMember(circleId, aliceSlot);
 
         assertFalse(sc.positionPaused(circleId, aliceSlot), "alice should no longer be paused");
         assertEq(pool.totalDeployed(), 0,      "pool deployment should be released");
@@ -182,12 +182,12 @@ contract PoolCoverageIntegrationTest is Test {
 
         // Alice resumes — needs withdrawable (balance - obligation) >= CONTRIBUTION
         sa.setPosition(aliceId, CONTRIBUTION * 2 + 1e6, CONTRIBUTION);
-        sc.resumePausedMember(circleId, 0, "");
+        sc.resumePausedMember(circleId, 0);
         assertEq(pool.totalDeployed(), CONTRIBUTION);
 
         // Bob resumes — same requirement
         sa.setPosition(bobId, CONTRIBUTION * 2 + 1e6, CONTRIBUTION);
-        sc.resumePausedMember(circleId, 1, "");
+        sc.resumePausedMember(circleId, 1);
         assertEq(pool.totalDeployed(), 0);
 
         // Full capital available again
@@ -249,7 +249,7 @@ contract PoolCoverageIntegrationTest is Test {
         // --- Alice tops up and resumes ---
         // needs withdrawable (balance - obligation) >= CONTRIBUTION → balance >= 2 * CONTRIBUTION
         sa.setPosition(aliceId, CONTRIBUTION * 2 + 1e6, CONTRIBUTION);
-        sc.resumePausedMember(circleId, 0, "");
+        sc.resumePausedMember(circleId, 0);
         assertFalse(sc.positionPaused(circleId, 0));
         assertEq(pool.totalDeployed(), 0);
 
