@@ -1,11 +1,9 @@
 # Task 003-01 — Implement SafetyNetPool Contract
 
-> **⚠ Superseded.** Spec 003 was rewritten from Safety Net Pool (bilateral vouching) to Safety Net Pool (installment coverage). This task file reflects the old model and must be regenerated from Spec 003 v1.0 before implementation begins.
-
-**Spec:** 003 — Safety Net Pool (v1.0)
+**Spec:** 003 — Safety Net Pool (v1.0 / v1.1)
 **Milestone:** 4
-**Status:** Blocked — task needs regeneration from updated spec
-**Estimated effort:** 14 hours
+**Status:** Done ✓
+**Estimated effort:** 14 hours (actual ~8h)
 **Dependencies:** Task 002-01 (SavingsCircle), Task 001-02 (SavingsAccount)
 **Parallel-safe:** No
 
@@ -13,108 +11,111 @@
 
 ## Objective
 
-Implement `SafetyNetPool.sol` — the peer vouching layer. Manages vouch creation, locking, income accrual (interest + payout share), and expiry/renewal.
+Implement `SafetyNetPool.sol` — the pool that enables minimum-installment coverage for
+SavingsCircle members. Depositors lock USDC to earn yield; the pool covers paused member
+slots when `SavingsCircle.checkAndPause` is called.
 
 ---
 
-## Context
+## Spec alignment
 
-The Safety Net Pool sits on top of the savings account and savings circle. A vouch is an economic relationship: the voucher locks capital in their savings account as backing for another member, earns passive income, and benefits when that member is selected for a payout.
-
-See: Spec 003 all user stories, plan.md §3.3.
+This task was regenerated from **Spec 003 v1.0/v1.1** (installment coverage model).
+The previous task file described the archived bilateral-vouching model (v0.4) and has been
+replaced by this file.
 
 ---
 
 ## Acceptance Criteria
 
 ### Contract Structure
-- [ ] Contract at `contracts/core/SafetyNetPool.sol`
-- [ ] Constructor takes: `ISavingsAccount savingsAccount`, `ISavingsCircle savingsCircle`
-- [ ] Emits `SavingsCircle.MemberSelected` event to trigger payout share distribution (implement as a listener via `savingsCircle.registerPayoutListener(address(this))` or equivalent callback pattern)
+- [x] Contract at `contracts/src/core/SafetyNetPool.sol`
+- [x] Constructor takes: `ISavingsAccount`, `IYieldRouter`, `IERC20 usdc`, `address circle`, `address governance`, `uint256 initialRateBps`
+- [x] Implements `ICircleBuffer` — SavingsCircle calls `coverSlot` / `releaseSlot`
 
-### Vouch Creation
-- [ ] `createVouch(bytes32 vouchedId, uint256 amount, uint256 interestRateBps, uint256 payoutShareBps, uint256 circleId) returns (uint256 vouchId)`:
-  - Validates voucher's withdrawable balance >= `amount`
-  - Validates total vouched amount (all active vouches) <= 80% of voucher's total balance
-  - Validates `payoutShareBps` is between 1000 (10%) and 5000 (50%) — prevents exploitative splits
-  - Validates `circleId` exists and is ACTIVE
-  - Increases voucher's `circleObligation` by `amount` (locks the vouch amount)
-  - Records vouch in `vouches` mapping
-  - Emits `VouchCreated(vouchId, voucherId, vouchedId, amount, circleId)`
-- [ ] `acceptVouch(uint256 vouchId, bytes calldata historyProof)`:
-  - Callable only by the intended `vouchedId` member
-  - Verifies `historyProof` (ZK proof of savings history — can be a mock in v1)
-  - Joins the vouched member to the associated circle with the combined balance
-  - Sets vouch status to `ACTIVE`
-  - Emits `VouchAccepted(vouchId)`
+### Pool Deposits (US-001)
+- [x] `deposit(uint256 amount, uint256 lockDuration)` — pulls USDC, routes to YieldRouter, mints pool shares
+- [x] First depositor: 1 pool share per USDC; subsequent: pro-rata on pre-deposit pool value
+- [x] `lockDuration` recorded on position (informational in v1; lock is not enforced for undeployed capital per AC-002-1)
+- [x] Emits `Deposited(shieldedId, amount, lockDuration, newPoolShares)`
 
-### Interest Accrual
-- [ ] `accrueInterest(uint256 vouchId)` — callable by anyone, updates interest:
-  - Calculates interest as `amount * interestRateBps * timeSinceLastAccrual / (10000 * 365 days)`
-  - Adds accrued interest to `vouches[vouchId].pendingInterest`
-  - Updates `lastAccrualTimestamp`
-- [ ] `claimInterest(uint256 vouchId)`:
-  - Callable only by voucher
-  - Transfers `pendingInterest` from vouched member's yield earnings to voucher's balance
-  - Requires vouched member's balance to have sufficient yield (not principal)
-  - Resets `pendingInterest` to 0
-  - Emits `InterestClaimed(vouchId, amount)`
+### Pool Withdrawals (US-002)
+- [x] `withdraw(uint256 amount)` — burns pool shares, redeems from YieldRouter
+- [x] Only pro-rata undeployed (available) capital is withdrawable
+- [x] Reverts `InsufficientWithdrawable` if `amount > getWithdrawable(shieldedId)`
+- [x] Reverts `NoPosition` if caller has no pool shares
+- [x] Emits `Withdrawn(shieldedId, amount, burntPoolShares)`
 
-### Payout Share Distribution
-- [ ] `onMemberSelected(uint256 circleId, bytes32 selectedMemberId)` — called by SavingsCircle on payout:
-  - Looks up any active vouch for `selectedMemberId` in `circleId`
-  - Calculates payout share: `yieldLeveragePremium * payoutShareBps / 10000`
-  - Credits share to voucher's balance
-  - Emits `PayoutShareDistributed(vouchId, amount)`
+### ICircleBuffer — Slot Coverage (US-003 / US-005)
+- [x] `coverSlot(uint256 circleId, uint16 slot, uint256 amount)` — only callable by `circle`; checks available capital; marks `totalDeployed`
+- [x] `releaseSlot(uint256 circleId, uint16 slot)` — only callable by `circle`; restores available capital
+- [x] Reverts `InsufficientAvailableCapital` if pool lacks sufficient undeployed capital
+- [x] Reverts `OnlyCircle` if caller is not the authorised SavingsCircle
+- [x] Reverts `SlotNotCovered` on `releaseSlot` for unknown coverage
 
-### Vouch Expiry
-- [ ] `closeVouch(uint256 vouchId)` — callable at circle completion:
-  - Requires associated circle to be in `COMPLETED` status
-  - Settles any remaining interest
-  - Releases the locked amount (decreases voucher's `circleObligation` by vouch amount)
-  - Sets vouch status to `COMPLETED`
-  - Emits `VouchClosed(vouchId)`
-- [ ] `expireVouch(uint256 vouchId)` — for grace-period-exhausted exits:
-  - Requires vouched member to have exited the circle
-  - Settles interest up to exit point
-  - Deducts any unsettled interest from vouched member's remaining balance (if any)
-  - Releases locked amount
-  - Emits `VouchExpired(vouchId)`
+### View helpers
+- [x] `getTotalCapital()` — pool value including accrued yield
+- [x] `getAvailableCapital()` — undeployed portion
+- [x] `getWithdrawable(bytes32 shieldedId)` — pro-rata withdrawable for a depositor
+- [x] `getPositionValue(bytes32 shieldedId)` — full position value including yield
+- [x] `slotCoverages(circleId, slot)` — public mapping for coverage state
 
-### Discovery List
-- [ ] `signalVouchingAvailability(uint256 maxAmount, uint256 minCircleTier)`:
-  - Adds voucher to the discovery list with their stated parameters
-  - Does NOT reveal the voucher's balance — only the amount they're willing to vouch
-- [ ] `withdrawVouchingAvailability()`: removes from discovery list
-- [ ] `getVouchingOpportunities(uint256 circleId) returns (VouchOpportunity[])`: returns members seeking vouches for a given circle tier, with their ZK history proof included
+### Governance
+- [x] `coverageRateBps` — configurable annual coverage rate (OQ-005 placeholder)
+- [x] `setCoverageRate(uint256 newRateBps)` — only governance; emits `CoverageRateUpdated`
+- [x] `COVERAGE_WINDOW_ROUNDS = 3` constant (OQ-002 default)
 
 ### Tests
-- [ ] Unit tests at `test/unit/SafetyNetPool.test.ts`:
-  - `createVouch` → vouch locked, voucher obligation increased
-  - `createVouch` exceeding 80% limit → reverts
-  - `acceptVouch` by non-vouchedId member → reverts
-  - Interest accrual: correct formula
-  - `claimInterest` by non-voucher → reverts
-  - `onMemberSelected` → correct payout share distributed
-  - `closeVouch` before circle completes → reverts
-  - `closeVouch` after circle completes → obligation released
+- [x] Unit tests at `test/unit/SafetyNetPool.t.sol` (34 tests, all passing):
+  - Constructor verification
+  - Deposit: events, YieldRouter routing, share minting, multiple deposits, zero-amount revert
+  - Withdraw: USDC transfer, share burning, events, partial, reverts
+  - `coverSlot`: records coverage, deploys capital, OnlyCircle check, insufficient-capital revert
+  - `releaseSlot`: restores capital, events, not-covered revert, OnlyCircle check
+  - Multiple slots: accumulated `totalDeployed`, sequential release
+  - Governance: `setCoverageRate` success & unauthorised revert
+  - `getPositionValue`: single and two-depositor pro-rata
 
-- [ ] Integration test at `test/integration/vouch_and_selection.test.ts`:
-  - Voucher creates vouch → Vouched member accepts → Joins circle → Selected in round 3 → Verify interest and payout share correctly distributed → Circle completes → Vouch closed → Obligations zeroed
+- [x] Integration tests at `test/integration/PoolCoverageIntegration.t.sol` (5 tests, all passing):
+  - Pool deposit → `checkAndPause` (pool covers slot) → member tops up → `resumePausedMember` (pool releases)
+  - Pool empty → `checkAndPause` reverts `InsufficientAvailableCapital`
+  - Multiple paused slots, sequential release
+  - Pool depositor withdraws undeployed capital while one slot is covered
+  - Full 3-round circle lifecycle with one pause/resume cycle; pool capital intact at completion
 
 ---
 
 ## Output Files
 
-- `contracts/core/SafetyNetPool.sol`
-- `test/unit/SafetyNetPool.test.ts`
-- `test/integration/vouch_and_selection.test.ts`
+- `contracts/src/core/SafetyNetPool.sol`
+- `contracts/test/unit/SafetyNetPool.t.sol`
+- `contracts/test/integration/PoolCoverageIntegration.t.sol`
 
 ---
 
-## Notes
+## Implementation Notes
 
-- The `onMemberSelected` callback requires a trust boundary: only `SavingsCircle` can call it. Use `onlyCircle` modifier with the immutable `savingsCircle` address.
-- `yieldLeveragePremium` must be computed in `SavingsCircle` and passed to the callback — the market contract cannot compute it independently without knowing the member's original balance before the payout.
-- In v1, `historyProof` in `acceptVouch` can be a signature from the vouched member attesting to their savings history (cheaper than ZK, lower privacy). ZK proof is the target for v2.
-- The 80% diversification floor is checked per-vouch at creation time. If yield fluctuations later push a voucher's total vouched amount above 80% of their balance, the existing vouches are NOT automatically reduced — only new vouches are blocked. Document this clearly.
+### v1 design decisions
+
+| Open Question | Decision |
+|---|---|
+| OQ-001 (min pool depth) | No minimum enforced in v1; `coverSlot` reverts if available < required |
+| OQ-002 (coverage window) | `COVERAGE_WINDOW_ROUNDS = 3` constant; not yet enforced in contract logic |
+| OQ-003 (lock matching) | Fungible pool — no per-depositor deployment attribution |
+| OQ-004 (privacy / ZK debt) | Deferred to v2 (positions are shielded; ZK proof of debt-in-range not required in v1) |
+| OQ-005 (coverage rate) | Fixed governance-set rate; `coverageRateBps` is stored state, default 5% APY |
+
+### Deferred to v2
+- `safetyNetDebtShares` per member position and minimum-installment gap mechanics (US-003 / US-004)
+- Atomic debt settlement at selection (US-004)
+- Enforcement of `COVERAGE_WINDOW_ROUNDS` before circle shrinks to N-1 (US-005)
+- Lock-duration enforcement for depositors (currently informational only)
+- Coverage interest accrual from `coverageRateBps` (rate is stored but not charged in v1)
+
+### Pool share model
+Pool shares are minted proportionally to contribution against pool value *before* the deposit.
+This is the standard ERC4626 vault entry-price pattern.
+
+`sharesToMint = amount * totalPoolShares / prevPoolValue` (1:1 for first depositor)
+
+Withdrawable for a depositor: `available * depositorShares / totalPoolShares`
+where `available = convertToAssets(totalYRShares) − totalDeployed`.
