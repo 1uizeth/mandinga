@@ -63,7 +63,7 @@ contract SavingsAccountTest is Test {
     function setUp() public {
         usdc = new MockUSDC();
         router = new MockYieldRouter(address(usdc));
-        sa = new SavingsAccount(IYieldRouter(address(router)), emergencyModule, savingsCircle, address(usdc));
+        sa = new SavingsAccount(IYieldRouter(address(router)), emergencyModule, savingsCircle, address(usdc), address(0));
 
         // Fund the router with USDC so it can service withdrawals
         usdc.mint(address(router), 100_000e6);

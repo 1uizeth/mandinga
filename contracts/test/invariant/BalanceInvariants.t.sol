@@ -125,7 +125,8 @@ contract BalanceInvariantsTest is StdInvariant, Test {
             IYieldRouter(address(router)),
             emergencyModuleAddr,
             savingsCircleAddr,
-            address(usdc)
+            address(usdc),
+            address(0)      // safetyNetPool — not used in invariant tests
         );
 
         // Fund router with ample USDC to cover all withdrawals

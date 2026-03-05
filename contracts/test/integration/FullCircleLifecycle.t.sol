@@ -6,13 +6,13 @@ import {Test, console2} from "forge-std/Test.sol";
 import {SavingsCircle} from "../../src/core/SavingsCircle.sol";
 import {SavingsAccount} from "../../src/core/SavingsAccount.sol";
 import {ISavingsAccount} from "../../src/interfaces/ISavingsAccount.sol";
-import {ICircleBuffer} from "../../src/interfaces/ICircleBuffer.sol";
+import {ISafetyNetPool} from "../../src/interfaces/ISafetyNetPool.sol";
 import {IYieldRouter} from "../../src/interfaces/IYieldRouter.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockYieldRouter} from "../mocks/MockYieldRouter.sol";
 import {MockSavingsAccount} from "../mocks/MockSavingsAccount.sol";
 import {MockVRFCoordinatorV2} from "../mocks/MockVRFCoordinatorV2.sol";
-import {MockCircleBuffer} from "../mocks/MockCircleBuffer.sol";
+import {MockSafetyNetPool} from "../mocks/MockSafetyNetPool.sol";
 
 /// @notice Full end-to-end lifecycle test: 10 members, 10 rounds.
 /// @dev Uses real SavingsAccount + MockYieldRouter to test obligation enforcement.
@@ -27,7 +27,7 @@ contract FullCircleLifecycleTest is Test {
     MockYieldRouter internal router;
     SavingsAccount internal sa;
     MockVRFCoordinatorV2 internal vrf;
-    MockCircleBuffer internal buf;
+    MockSafetyNetPool internal buf;
     SavingsCircle internal sc;
 
     address internal emergencyModule = makeAddr("emergencyModule");
@@ -41,13 +41,15 @@ contract FullCircleLifecycleTest is Test {
             IYieldRouter(address(router)),
             emergencyModule,
             address(0),       // savingsCircle — set after sc deploy
-            address(usdc)
+            address(usdc),
+            address(0)        // safetyNetPool — not used in this test
         );
         vrf = new MockVRFCoordinatorV2();
-        buf = new MockCircleBuffer();
+        buf = new MockSafetyNetPool();
+        buf.setAvailableCapital(type(uint256).max);
         sc = new SavingsCircle(
             ISavingsAccount(address(sa)),
-            ICircleBuffer(address(buf)),
+            ISafetyNetPool(address(buf)),
             address(vrf),
             bytes32(uint256(1)),
             uint64(1)
@@ -85,7 +87,7 @@ contract FullCircleLifecycleTest is Test {
         MockSavingsAccount msa = new MockSavingsAccount();
         SavingsCircle msc = new SavingsCircle(
             ISavingsAccount(address(msa)),
-            ICircleBuffer(address(buf)),
+            ISafetyNetPool(address(buf)),
             address(vrf),
             bytes32(uint256(1)),
             uint64(1)
@@ -99,7 +101,7 @@ contract FullCircleLifecycleTest is Test {
         }
 
         // Create and join circle
-        uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR);
+        uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR, 0);
         for (uint256 i = 0; i < MEMBER_COUNT; i++) {
             vm.prank(actors[i]);
             msc.joinCircle(circleId, "");
@@ -111,7 +113,7 @@ contract FullCircleLifecycleTest is Test {
         }
 
         // ── Run all 10 rounds ──
-        (,,,,uint256 nextTs,,,, ) = msc.circles(circleId);
+        (,,,,uint256 nextTs,,,,, ) = msc.circles(circleId);
 
         // Track which slots receive payouts to ensure each slot paid exactly once
         bool[MEMBER_COUNT] memory paidSlots;
@@ -141,7 +143,7 @@ contract FullCircleLifecycleTest is Test {
 
         // ── Post-completion assertions ──
 
-        (, , , , , , , , SavingsCircle.CircleStatus status) = msc.circles(circleId);
+        (, , , , , , , , SavingsCircle.CircleStatus status,) = msc.circles(circleId);
         assertEq(uint8(status), uint8(SavingsCircle.CircleStatus.COMPLETED), "circle must be COMPLETED");
 
         // Every member should have been paid exactly once
@@ -168,7 +170,7 @@ contract FullCircleLifecycleTest is Test {
         MockSavingsAccount msa = new MockSavingsAccount();
         SavingsCircle msc = new SavingsCircle(
             ISavingsAccount(address(msa)),
-            ICircleBuffer(address(buf)),
+            ISafetyNetPool(address(buf)),
             address(vrf),
             bytes32(uint256(2)),
             uint64(1)
@@ -180,13 +182,13 @@ contract FullCircleLifecycleTest is Test {
             msa.setPosition(id, CONTRIB, 0);
         }
 
-        uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR);
+        uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR, 0);
         for (uint256 i = 0; i < MEMBER_COUNT; i++) {
             vm.prank(actors[i]);
             msc.joinCircle(circleId, "");
         }
 
-        (,,,,uint256 nextTs,,,, ) = msc.circles(circleId);
+        (,,,,uint256 nextTs,,,,, ) = msc.circles(circleId);
 
         for (uint256 round = 0; round < MEMBER_COUNT; round++) {
             vm.warp(nextTs + round * ROUND_DUR);
@@ -195,7 +197,7 @@ contract FullCircleLifecycleTest is Test {
             vrf.fulfillRequest(reqId, 0);
         }
 
-        (,,,,,,,, SavingsCircle.CircleStatus status) = msc.circles(circleId);
+        (,,,,,,,, SavingsCircle.CircleStatus status,) = msc.circles(circleId);
         assertEq(uint8(status), uint8(SavingsCircle.CircleStatus.COMPLETED));
     }
 
@@ -204,7 +206,7 @@ contract FullCircleLifecycleTest is Test {
         MockSavingsAccount msa = new MockSavingsAccount();
         SavingsCircle msc = new SavingsCircle(
             ISavingsAccount(address(msa)),
-            ICircleBuffer(address(buf)),
+            ISafetyNetPool(address(buf)),
             address(vrf),
             bytes32(uint256(3)),
             uint64(1)
@@ -215,13 +217,13 @@ contract FullCircleLifecycleTest is Test {
             msa.setPosition(id, CONTRIB * 2, 0);
         }
 
-        uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR);
+        uint256 circleId = msc.createCircle(POOL_SIZE, uint16(MEMBER_COUNT), ROUND_DUR, 0);
         for (uint256 i = 0; i < MEMBER_COUNT; i++) {
             vm.prank(actors[i]);
             msc.joinCircle(circleId, "");
         }
 
-        (,,,,uint256 nextTs,,,, ) = msc.circles(circleId);
+        (,,,,uint256 nextTs,,,,, ) = msc.circles(circleId);
 
         for (uint256 round = 0; round < MEMBER_COUNT; round++) {
             vm.warp(nextTs + round * ROUND_DUR);

@@ -7,7 +7,7 @@ import {SafetyNetPool} from "../../src/core/SafetyNetPool.sol";
 import {SavingsCircle} from "../../src/core/SavingsCircle.sol";
 import {ISavingsAccount} from "../../src/interfaces/ISavingsAccount.sol";
 import {IYieldRouter} from "../../src/interfaces/IYieldRouter.sol";
-import {ICircleBuffer} from "../../src/interfaces/ICircleBuffer.sol";
+import {ISafetyNetPool} from "../../src/interfaces/ISafetyNetPool.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockYieldRouter} from "../mocks/MockYieldRouter.sol";
 import {MockSavingsAccount} from "../mocks/MockSavingsAccount.sol";
@@ -61,7 +61,7 @@ contract PoolCoverageIntegrationTest is Test {
         );
         sc = new SavingsCircle(
             ISavingsAccount(address(sa)),
-            ICircleBuffer(address(pool)),
+            ISafetyNetPool(address(pool)),
             address(vrf),
             KEY_HASH,
             SUB_ID
@@ -82,7 +82,7 @@ contract PoolCoverageIntegrationTest is Test {
         _registerMember(carol, CONTRIBUTION);
 
         // Create and fill the circle
-        circleId = sc.createCircle(POOL_SIZE, MEMBER_COUNT, ROUND_DUR);
+        circleId = sc.createCircle(POOL_SIZE, MEMBER_COUNT, ROUND_DUR, 0);
         vm.prank(alice); sc.joinCircle(circleId, "");
         vm.prank(bob);   sc.joinCircle(circleId, "");
         vm.prank(carol); sc.joinCircle(circleId, "");
@@ -98,7 +98,7 @@ contract PoolCoverageIntegrationTest is Test {
     }
 
     function _doRound(uint256 cId, uint256 randomWord) internal {
-        (, , , , uint256 nextTs, , , , ) = sc.circles(cId);
+        (, , , , uint256 nextTs, , , , ,) = sc.circles(cId);
         vm.warp(nextTs);
         sc.executeRound(cId);
         uint256 reqId = vrf.getLastRequestId();
@@ -236,7 +236,7 @@ contract PoolCoverageIntegrationTest is Test {
         sc.checkAndPause(circleId, 0); // alice slot 0
 
         // Execute round 1 — select slot 1 (bob) via random word = 0 mod 2 eligible = index 0 = slot 1
-        (, , , , uint256 nextTs, , , , ) = sc.circles(circleId);
+        (, , , , uint256 nextTs, , , , ,) = sc.circles(circleId);
         vm.warp(nextTs);
         sc.executeRound(circleId);
         uint256 reqId1 = vrf.getLastRequestId();
@@ -254,7 +254,7 @@ contract PoolCoverageIntegrationTest is Test {
         assertEq(pool.totalDeployed(), 0);
 
         // --- Round 2: alice and carol eligible, select alice ---
-        (, , , , nextTs, , , , ) = sc.circles(circleId);
+        (, , , , nextTs, , , , ,) = sc.circles(circleId);
         vm.warp(nextTs);
         sc.executeRound(circleId);
         uint256 reqId2 = vrf.getLastRequestId();
@@ -264,7 +264,7 @@ contract PoolCoverageIntegrationTest is Test {
         assertTrue(sc.payoutReceived(circleId, 0), "alice should have received payout");
 
         // --- Round 3: only carol eligible ---
-        (, , , , nextTs, , , , ) = sc.circles(circleId);
+        (, , , , nextTs, , , , ,) = sc.circles(circleId);
         vm.warp(nextTs);
         sc.executeRound(circleId);
         uint256 reqId3 = vrf.getLastRequestId();
@@ -272,7 +272,7 @@ contract PoolCoverageIntegrationTest is Test {
 
         assertTrue(sc.payoutReceived(circleId, 2), "carol should have received payout");
 
-        (, , , , , , , , SavingsCircle.CircleStatus status) = sc.circles(circleId);
+        (, , , , , , , , SavingsCircle.CircleStatus status,) = sc.circles(circleId);
         assertEq(uint8(status), uint8(SavingsCircle.CircleStatus.COMPLETED));
 
         // Pool capital fully intact (no coverage active at completion)
