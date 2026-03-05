@@ -26,8 +26,11 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
     /// @notice Only address permitted to call `activateEmergency()`.
     address public immutable emergencyModule;
 
-    /// @notice Only address permitted to call `setCircleObligation()`.
+    /// @notice Only address permitted to call `setCircleObligation()` and `clearSafetyNetDebt()`.
     address public immutable savingsCircle;
+
+    /// @notice Only address permitted to call `addSafetyNetDebt()` and `chargeFromYield()`.
+    address public immutable safetyNetPool;
 
     /// @notice USDC stablecoin accepted as the deposit asset.
     IERC20 public immutable stablecoin;
@@ -75,6 +78,11 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
         _;
     }
 
+    modifier onlySafetyNetPool() {
+        if (msg.sender != safetyNetPool) revert NotAuthorized(msg.sender, safetyNetPool);
+        _;
+    }
+
     modifier onlyYieldRouter() {
         if (msg.sender != address(yieldRouter)) revert NotAuthorized(msg.sender, address(yieldRouter));
         _;
@@ -93,12 +101,14 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
         IYieldRouter _yieldRouter,
         address _emergencyModule,
         address _savingsCircle,
-        address _stablecoin
+        address _stablecoin,
+        address _safetyNetPool
     ) {
         yieldRouter = _yieldRouter;
         emergencyModule = _emergencyModule;
         savingsCircle = _savingsCircle;
         stablecoin = IERC20(_stablecoin);
+        safetyNetPool = _safetyNetPool;
     }
 
     // ──────────────────────────────────────────────
@@ -220,6 +230,62 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
         if (emergencyActive) revert EmergencyAlreadyActive();
         emergencyActive = true;
         emit EmergencyActivated();
+    }
+
+    // ──────────────────────────────────────────────
+    // Safety Net Pool integration (Task 003-02, 003-03, 003-04)
+    // ──────────────────────────────────────────────
+
+    /// @inheritdoc ISavingsAccount
+    function addSafetyNetDebt(bytes32 shieldedId, uint256 shares) external onlySafetyNetPool {
+        if (shares == 0) return;
+        _positions[shieldedId].safetyNetDebtShares += shares;
+        emit SafetyNetDebtAdded(shieldedId, shares);
+    }
+
+    /// @inheritdoc ISavingsAccount
+    function getSafetyNetDebtShares(bytes32 shieldedId) external view returns (uint256) {
+        return _positions[shieldedId].safetyNetDebtShares;
+    }
+
+    /// @inheritdoc ISavingsAccount
+    function clearSafetyNetDebt(bytes32 shieldedId) external onlySavingsCircle {
+        uint256 settled = _positions[shieldedId].safetyNetDebtShares;
+        if (settled == 0) return;
+        _positions[shieldedId].safetyNetDebtShares = 0;
+        emit SafetyNetDebtCleared(shieldedId, settled);
+    }
+
+    /// @inheritdoc ISavingsAccount
+    /// @dev Charges from yieldEarnedTotal first; remainder from free balance.
+    ///      Free balance = balance - circleObligation (locked principal excluded).
+    function chargeFromYield(bytes32 shieldedId, uint256 amount) external onlySafetyNetPool {
+        if (amount == 0) return;
+        Position storage pos = _positions[shieldedId];
+
+        uint256 fromYield;
+        uint256 fromBalance;
+
+        if (pos.yieldEarnedTotal >= amount) {
+            fromYield = amount;
+            pos.yieldEarnedTotal -= amount;
+            pos.balance -= amount;
+        } else {
+            fromYield = pos.yieldEarnedTotal;
+            uint256 remainder = amount - fromYield;
+
+            uint256 freeBalance = pos.balance > pos.circleObligation
+                ? pos.balance - pos.circleObligation
+                : 0;
+            if (freeBalance < remainder) revert PositionInsolvent(shieldedId);
+
+            fromBalance = remainder;
+            pos.yieldEarnedTotal = 0;
+            pos.balance -= amount;
+        }
+
+        pos.lastUpdateTimestamp = block.timestamp;
+        emit YieldCharged(shieldedId, amount, fromYield, fromBalance);
     }
 
     // ──────────────────────────────────────────────
