@@ -6,6 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {ICircleBuffer} from "../interfaces/ICircleBuffer.sol";
+import {ISafetyNetPool} from "../interfaces/ISafetyNetPool.sol";
 import {IYieldRouter} from "../interfaces/IYieldRouter.sol";
 import {ISavingsAccount} from "../interfaces/ISavingsAccount.sol";
 
@@ -25,7 +26,7 @@ import {ISavingsAccount} from "../interfaces/ISavingsAccount.sol";
 ///  • Reallocation coverage window enforcement (OQ-002)
 ///  • Lock-duration deployment preference (OQ-003)
 ///  • ZK proof for debt settlement (OQ-004)
-contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
+contract SafetyNetPool is ISafetyNetPool, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     // ──────────────────────────────────────────────
@@ -34,6 +35,12 @@ contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
 
     /// @notice Default coverage window before circle shrinks to N-1. (OQ-002)
     uint8 public constant COVERAGE_WINDOW_ROUNDS = 3;
+
+    /// @notice Minimum allowed minDepositPerRound (1 USDC in 6-decimal).
+    uint256 public constant MIN_MIN_DEPOSIT = 1e6;
+
+    /// @notice Minimum elapsed time between accrueInterest calls for the same slot.
+    uint256 public constant MIN_ACCRUAL_INTERVAL = 1 hours;
 
     // ──────────────────────────────────────────────
     // Immutables
@@ -70,8 +77,11 @@ contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
     /// @notice Total YieldRouter shares held by this contract.
     uint256 public totalYRShares;
 
-    /// @notice USDC equivalent currently committed to active slot coverages.
+    /// @notice USDC equivalent currently committed to active slot and gap coverages.
     uint256 public totalDeployed;
+
+    /// @notice Total USDC interest collected from covered members (accounting; not minted to pool yet).
+    uint256 public totalInterestCollected;
 
     // ──────────────────────────────────────────────
     // Per-depositor metadata (informational)
@@ -84,7 +94,7 @@ contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
     mapping(bytes32 shieldedId => PoolPosition) public positions;
 
     // ──────────────────────────────────────────────
-    // Slot coverage tracking
+    // Slot coverage tracking (pause/resume)
     // ──────────────────────────────────────────────
 
     struct SlotCoverage {
@@ -95,6 +105,20 @@ contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
     mapping(uint256 circleId => mapping(uint16 slot => SlotCoverage)) public slotCoverages;
 
     // ──────────────────────────────────────────────
+    // Gap coverage tracking (min-installment, Task 003-02)
+    // ──────────────────────────────────────────────
+
+    /// @notice Canonical GapCoverage struct (authoritative definition; tasks 03 and 04 reference this).
+    struct GapCoverage {
+        bytes32 memberId;            // shieldedId of the min-installment member
+        uint256 gapPerRound;         // USDC gap covered per round for this slot
+        uint256 totalDeployedShares; // YieldRouter shares committed (grows each round)
+        uint256 lastAccrualTs;       // timestamp of last interest accrual (0 = never accrued)
+    }
+
+    mapping(uint256 circleId => mapping(uint16 slot => GapCoverage)) public gapCoverages;
+
+    // ──────────────────────────────────────────────
     // Events
     // ──────────────────────────────────────────────
 
@@ -103,6 +127,10 @@ contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
     event SlotCovered(uint256 indexed circleId, uint16 indexed slot, uint256 amount);
     event SlotReleased(uint256 indexed circleId, uint16 indexed slot, uint256 amount);
     event CoverageRateUpdated(uint256 oldBps, uint256 newBps);
+    event GapCovered(uint256 indexed circleId, uint16 indexed slot, bytes32 memberId, uint256 gap, uint256 shares);
+    event GapDebtSettled(uint256 indexed circleId, uint16 indexed slot, uint256 usdcReleased);
+    event InterestAccrued(uint256 indexed circleId, uint16 indexed slot, bytes32 memberId, uint256 amount);
+    event InterestForgiven(uint256 indexed circleId, uint16 indexed slot, bytes32 memberId, uint256 amount);
 
     // ──────────────────────────────────────────────
     // Errors
@@ -112,6 +140,7 @@ contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
     error InsufficientAvailableCapital(uint256 available, uint256 required);
     error InsufficientWithdrawable(uint256 withdrawable, uint256 requested);
     error SlotNotCovered(uint256 circleId, uint16 slot);
+    error GapNotFound(uint256 circleId, uint16 slot);
     error OnlyCircle();
     error OnlyGovernance();
     error NoPosition();
@@ -239,6 +268,127 @@ contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
     }
 
     // ──────────────────────────────────────────────
+    // Gap coverage (Task 003-02)
+    // ──────────────────────────────────────────────
+
+    /// @inheritdoc ISafetyNetPool
+    function coverGap(
+        uint256 circleId,
+        uint16 slot,
+        bytes32 memberId,
+        uint256 gap
+    ) external override nonReentrant {
+        if (msg.sender != circle) revert OnlyCircle();
+        if (gap == 0) revert ZeroAmount();
+
+        uint256 available = getAvailableCapital();
+        if (available < gap) revert InsufficientAvailableCapital(available, gap);
+
+        uint256 sharesCommitted = yieldRouter.convertToShares(gap);
+
+        savingsAccount.addSafetyNetDebt(memberId, sharesCommitted);
+
+        GapCoverage storage gc = gapCoverages[circleId][slot];
+        if (gc.lastAccrualTs == 0) {
+            // First call for this slot — set fields that only initialise once
+            gc.memberId = memberId;
+            gc.gapPerRound = gap;
+            gc.lastAccrualTs = block.timestamp;
+        }
+        gc.totalDeployedShares += sharesCommitted;
+
+        totalDeployed += gap;
+
+        emit GapCovered(circleId, slot, memberId, gap, sharesCommitted);
+    }
+
+    /// @notice Return the GapCoverage record for a slot.
+    function getGapCoverage(uint256 circleId, uint16 slot) external view returns (GapCoverage memory) {
+        return gapCoverages[circleId][slot];
+    }
+
+    // ──────────────────────────────────────────────
+    // Debt settlement (Task 003-03)
+    // ──────────────────────────────────────────────
+
+    /// @inheritdoc ISafetyNetPool
+    function settleGapDebt(uint256 circleId, uint16 slot) external override nonReentrant {
+        if (msg.sender != circle) revert OnlyCircle();
+
+        GapCoverage storage gc = gapCoverages[circleId][slot];
+        if (gc.lastAccrualTs == 0) revert GapNotFound(circleId, slot);
+
+        // Auto-accrue any outstanding interest before settlement (must not revert)
+        _accrueInterestInternal(circleId, slot);
+
+        uint256 usdcReleased = yieldRouter.convertToAssets(gc.totalDeployedShares);
+
+        // Release the USDC counter (use usdcReleased capped at totalDeployed to avoid underflow)
+        totalDeployed = totalDeployed >= usdcReleased ? totalDeployed - usdcReleased : 0;
+
+        delete gapCoverages[circleId][slot];
+
+        emit GapDebtSettled(circleId, slot, usdcReleased);
+    }
+
+    /// @inheritdoc ISafetyNetPool
+    function convertGapToUsdc(uint256 circleId, uint16 slot) external view override returns (uint256) {
+        return yieldRouter.convertToAssets(gapCoverages[circleId][slot].totalDeployedShares);
+    }
+
+    // ──────────────────────────────────────────────
+    // Interest accrual (Task 003-04)
+    // ──────────────────────────────────────────────
+
+    /// @inheritdoc ISafetyNetPool
+    function accrueInterest(uint256 circleId, uint16 slot) external override nonReentrant {
+        GapCoverage storage gc = gapCoverages[circleId][slot];
+        if (gc.lastAccrualTs == 0) return; // slot not tracked / already settled
+
+        if (coverageRateBps == 0) return; // zero rate — no-op (don't consume elapsed window)
+
+        uint256 elapsed = block.timestamp - gc.lastAccrualTs;
+        if (elapsed < MIN_ACCRUAL_INTERVAL) return;
+
+        uint256 interest = _computeInterest(gc.totalDeployedShares, elapsed);
+        if (interest == 0) return;
+
+        savingsAccount.chargeFromYield(gc.memberId, interest);
+        gc.lastAccrualTs = block.timestamp;
+        totalInterestCollected += interest;
+
+        emit InterestAccrued(circleId, slot, gc.memberId, interest);
+    }
+
+    /// @inheritdoc ISafetyNetPool
+    function getAccruedInterest(uint256 circleId, uint16 slot) external view override returns (uint256) {
+        GapCoverage storage gc = gapCoverages[circleId][slot];
+        if (gc.lastAccrualTs == 0 || coverageRateBps == 0) return 0;
+        uint256 elapsed = block.timestamp - gc.lastAccrualTs;
+        return _computeInterest(gc.totalDeployedShares, elapsed);
+    }
+
+    /// @inheritdoc ISafetyNetPool
+    function getEstimatedNetPayout(uint256 circleId, uint16 slot)
+        external
+        view
+        override
+        returns (uint256 grossUsdc, uint256 debtUsdc, uint256 interestUsdc, uint256 netUsdc)
+    {
+        // grossUsdc needs access to SavingsCircle's poolSize — not available here.
+        // Caller should combine with circle data. Returned as 0 from the pool's perspective.
+        grossUsdc = 0;
+        debtUsdc = yieldRouter.convertToAssets(gapCoverages[circleId][slot].totalDeployedShares);
+        GapCoverage storage gc = gapCoverages[circleId][slot];
+        if (gc.lastAccrualTs != 0 && coverageRateBps != 0) {
+            uint256 elapsed = block.timestamp - gc.lastAccrualTs;
+            interestUsdc = _computeInterest(gc.totalDeployedShares, elapsed);
+        }
+        uint256 total = debtUsdc + interestUsdc;
+        netUsdc = total >= grossUsdc ? 0 : grossUsdc - total;
+    }
+
+    // ──────────────────────────────────────────────
     // Governance
     // ──────────────────────────────────────────────
 
@@ -290,5 +440,32 @@ contract SafetyNetPool is ICircleBuffer, ReentrancyGuard {
     function _poolValue() internal view returns (uint256) {
         if (totalYRShares == 0) return 0;
         return yieldRouter.convertToAssets(totalYRShares);
+    }
+
+    /// @dev Compute USDC interest owed on `totalDeployedShares` for `elapsed` seconds.
+    function _computeInterest(uint256 shares, uint256 elapsed) internal view returns (uint256) {
+        if (shares == 0 || elapsed == 0 || coverageRateBps == 0) return 0;
+        uint256 debtUsdc = yieldRouter.convertToAssets(shares);
+        return (debtUsdc * coverageRateBps * elapsed) / (10_000 * 365 days);
+    }
+
+    /// @dev Auto-accrue interest before settlement. MUST NOT revert — wraps chargeFromYield
+    ///      in try/catch so PositionInsolvent does not propagate into claimPayout.
+    function _accrueInterestInternal(uint256 circleId, uint16 slot) internal {
+        GapCoverage storage gc = gapCoverages[circleId][slot];
+        if (gc.lastAccrualTs == 0 || coverageRateBps == 0) return;
+
+        uint256 elapsed = block.timestamp - gc.lastAccrualTs;
+        uint256 interest = _computeInterest(gc.totalDeployedShares, elapsed);
+        if (interest == 0) return;
+
+        try savingsAccount.chargeFromYield(gc.memberId, interest) {
+            gc.lastAccrualTs = block.timestamp;
+            totalInterestCollected += interest;
+            emit InterestAccrued(circleId, slot, gc.memberId, interest);
+        } catch {
+            // Position insolvent — interest is forgiven; lastAccrualTs not updated
+            emit InterestForgiven(circleId, slot, gc.memberId, interest);
+        }
     }
 }
