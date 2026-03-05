@@ -5,4 +5,7 @@ test = "test"
 script = "script"
 libs = ["lib"]
 solc = "0.8.24"
-fs_permissions = [{ access = "read", path = "lib/foundry-chainlink-toolkit/out" }]
+fs_permissions = [
+  { access = "read", path = "lib/foundry-chainlink-toolkit/out" },
+  { access = "read", path = "config" }
+]
