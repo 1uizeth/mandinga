@@ -52,6 +52,37 @@ contract MockSavingsAccount is ISavingsAccount {
         emit YieldCredited(shieldedId, amount);
     }
 
+    // ── Safety Net Pool integration (Task 003-02, 03, 04) ──
+
+    mapping(bytes32 => uint256) public safetyNetDebtShares;
+
+    function addSafetyNetDebt(bytes32 shieldedId, uint256 shares) external override {
+        safetyNetDebtShares[shieldedId] += shares;
+        emit SafetyNetDebtAdded(shieldedId, shares);
+    }
+
+    function getSafetyNetDebtShares(bytes32 shieldedId) external view override returns (uint256) {
+        return safetyNetDebtShares[shieldedId];
+    }
+
+    function clearSafetyNetDebt(bytes32 shieldedId) external override {
+        uint256 settled = safetyNetDebtShares[shieldedId];
+        safetyNetDebtShares[shieldedId] = 0;
+        emit SafetyNetDebtCleared(shieldedId, settled);
+    }
+
+    function chargeFromYield(bytes32 shieldedId, uint256 amount) external override {
+        Position storage pos = positions[shieldedId];
+        if (pos.balance < amount) revert PositionInsolvent(shieldedId);
+        pos.balance -= amount;
+        if (pos.yieldEarnedTotal >= amount) {
+            pos.yieldEarnedTotal -= amount;
+        } else {
+            pos.yieldEarnedTotal = 0;
+        }
+        emit YieldCharged(shieldedId, amount, 0, 0);
+    }
+
     // ── Stubs for unused interface functions ──
 
     function deposit(uint256) external override {}
