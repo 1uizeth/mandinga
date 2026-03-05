@@ -21,11 +21,6 @@ import {ISavingsAccount} from "../interfaces/ISavingsAccount.sol";
 ///  • Coverage is pool-level fungible: no per-depositor attribution of covered slots.
 ///  • Withdrawals are pro-rata on available (undeployed) capital.
 ///
-/// Deferred to v2 / pending open questions:
-///  • safetyNetDebtShares + minimum-installment mechanics (OQ-004, OQ-005)
-///  • Reallocation coverage window enforcement (OQ-002)
-///  • Lock-duration deployment preference (OQ-003)
-///  • ZK proof for debt settlement (OQ-004)
 contract SafetyNetPool is ISafetyNetPool, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
