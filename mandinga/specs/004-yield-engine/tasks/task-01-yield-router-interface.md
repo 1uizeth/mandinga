@@ -2,7 +2,7 @@
 
 **Spec:** 004 — Yield Engine
 **Milestone:** 1
-**Status:** Ready
+**Status:** Done ✓
 **Estimated effort:** 2 hours
 **Dependencies:** None
 **Parallel-safe:** Yes (no dependencies)
@@ -25,38 +25,28 @@ See: Spec 004 v0.5.
 
 ## Acceptance Criteria
 
-- [ ] Interface file created at `backend/contracts/interfaces/IYieldRouter.sol`
-- [ ] `IYieldRouter` extends ERC4626 (`IERC4626`) — do not redefine `deposit()` or `withdraw()`; they are inherited. Add the following protocol-specific functions:
-  - `harvest()` — collect yield from all adapters and let it accrue via share price appreciation
-  - `getBlendedAPY() returns (uint256)` — current blended rate in basis points
-  - `getCircuitBreakerStatus() returns (bool)` — whether circuit breaker is active
-  - `getTotalAllocated() returns (uint256)` — total capital under management (mirrors `totalAssets()`)
-- [ ] NatSpec documentation on every function explaining inputs, outputs, and revert conditions
-- [ ] Interface emits the following events:
-  - `CapitalAllocated(uint256 amount, uint256 timestamp)`
-  - `CapitalWithdrawn(uint256 amount, uint256 timestamp)`
-  - `YieldHarvested(uint256 grossYield, uint256 protocolFee, uint256 bufferContribution, uint256 netYield, uint256 timestamp)`
-  - `CircuitBreakerTripped(string reason, uint256 timestamp)` — emitted for logging when the circuit breaker activates
-  - `CircuitBreakerReset(uint256 timestamp)`
-- [ ] Interface declares the following custom errors:
-  - `error CircuitBreakerActive()` — used to revert deposit/harvest calls while circuit breaker is engaged (distinct from the `CircuitBreakerTripped` event)
-- [ ] Interface compiles successfully with `forge build`
-- [ ] Interface `IYieldSourceAdapter` defined at `backend/contracts/interfaces/IYieldSourceAdapter.sol`:
-  - `deposit(uint256 amount)` — deposit USDC into the yield source
-  - `withdraw(uint256 amount)` — withdraw USDC from the yield source (reverts if PSM liquidity insufficient)
-  - `withdrawMax(uint256 requested) returns (uint256 withdrawn)` — partial withdrawal fallback; emits `PartialWithdrawal`
-  - `getBalance() returns (uint256)` — current USDC balance including accrued yield (6 decimals)
-  - `getAPY() returns (uint256)` — current APY in basis points
-  - `getAsset() returns (address)` — the underlying asset (USDC)
-  - `harvest() returns (uint256 yieldAmount)` — collect and return yield earned since last harvest
-  - NatSpec on every function
+- [x] Interface file created at `contracts/src/interfaces/IYieldRouter.sol`
+- [x] `IYieldRouter` extends ERC4626 (`IERC4626`) — `deposit()`, `withdraw()`, `mint()`, `redeem()` inherited. Protocol-specific additions:
+  - `allocate(uint256 amount)` — SavingsAccount entry point (restricted)
+  - `harvest()` — collects yield; share price appreciation model
+  - `getBlendedAPY() returns (uint256)` — delegates to sparkAdapter
+  - `getCircuitBreakerStatus() returns (bool)` — reflects `circuitBreakerTripped` flag
+  - `getTotalAllocated() returns (uint256)` — mirrors `totalAssets()`
+- [x] NatSpec on every function ✓
+- [x] Events: `CapitalAllocated`, `CapitalWithdrawn`, `YieldHarvested`, `CircuitBreakerTripped`, `CircuitBreakerReset` ✓
+- [x] Error: `CircuitBreakerActive()` ✓
+- [x] Interface compiles successfully with `forge build` ✓
+- [x] `IYieldSourceAdapter` at `contracts/src/interfaces/IYieldSourceAdapter.sol`:
+  - `deposit`, `withdraw`, `withdrawMax`, `getBalance`, `getAPY`, `getAsset`, `harvest` ✓
+  - Event `PartialWithdrawal` ✓
+  - NatSpec on every function ✓
 
 ---
 
 ## Output Files
 
-- `backend/contracts/interfaces/IYieldRouter.sol`
-- `backend/contracts/interfaces/IYieldSourceAdapter.sol`
+- `contracts/src/interfaces/IYieldRouter.sol`
+- `contracts/src/interfaces/IYieldSourceAdapter.sol`
 
 ---
 
