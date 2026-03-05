@@ -10,7 +10,18 @@
 ## Changelog
 
 **v1.1 (March 2026):**
-- **SNP scope explicitly limited to pre-selection.** Post-selection, the locked payout (N × depositPerRound) always covers remaining obligations by arithmetic. SNP is not involved in obligation settlement after a member is selected. Overview and problem statement updated to reflect this.
+- **SNP scope clarified: one-time settlement at selection, no ongoing post-selection debt.**
+  After a member is selected, the gross payout (N × depositPerRound) always arithmetically
+  covers all remaining obligations — the SNP has no role in managing the member's future
+  rounds. The one exception is the **single atomic debt clearance** that happens at selection
+  time: `safetyNetDebtShares` accumulated during pre-selection rounds is settled before
+  `circleObligationShares` is locked (US-004). This is the only SNP action that touches
+  post-selection state. Once this settlement completes, the SNP has no further involvement.
+  Due to gas constraints in the Chainlink VRF callback (`CALLBACK_GAS_LIMIT = 300_000`),
+  this settlement is implemented as a **two-phase split**: the VRF callback marks the winner
+  (lightweight), and a subsequent permissionless `claimPayout` call performs the settlement.
+  Both phases are considered part of the same logical "selection event". Overview and
+  problem statement updated to reflect this.
 
 **v1.0 (March 2026):**
 - **Complete rewrite.** Replaced the bilateral vouching / Safety Net Pool model with the Safety Net Pool — the mechanism that enables minimum installment coverage for circle participants.
@@ -99,7 +110,10 @@ Both create a gap the circle cannot absorb alone. The Safety Net Pool fills gap 
 
 **Acceptance Criteria:**
 - AC-004-1: At selection, the circle contract reads `safetyNetDebtShares` on the selected member's position
-- AC-004-2: If `safetyNetDebtShares > 0`, those shares are transferred from the gross payout to the Safety Net Pool in the same transaction as the payout credit — before `circleObligationShares` is set
+- AC-004-2: If `safetyNetDebtShares > 0`, the debt settlement and payout credit form a single **logical** atomic unit, implemented as a two-phase split for gas safety:
+  - **Phase 1 (VRF callback):** the selected member is marked as winner (`pendingPayout = true`, `payoutReceived = true`); no obligation is written, no balance is credited. This phase MUST complete within `CALLBACK_GAS_LIMIT`.
+  - **Phase 2 (`claimPayout`, permissionless):** `safetyNetDebtShares` are settled — the pool releases deployed capital, the member's debt is cleared, `circleObligationShares` is set to the net amount, and the gross payout is credited. This phase has no gas limit constraint.
+  The two-phase design guarantees the VRF callback never reverts while preserving the invariant that no member can re-enter the eligible pool after being selected.
 - AC-004-3: Net `circleObligationShares = convertToShares(remainingRounds × depositPerRound) − safetyNetDebtShares`. Always ≥ 0 (the payout = N × depositPerRound; maximum debt = N × (depositPerRound − minDepositPerRound); minimum net is bounded by minDepositPerRound contributions)
 - AC-004-4: `safetyNetDebtShares` is reset to 0 atomically with settlement
 - AC-004-5: Deployed pool capital that was covering this member's gap is released back to the depositor's undeployed balance

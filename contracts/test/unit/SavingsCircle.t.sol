@@ -5,10 +5,10 @@ import {Test, console2} from "forge-std/Test.sol";
 
 import {SavingsCircle} from "../../src/core/SavingsCircle.sol";
 import {ISavingsAccount} from "../../src/interfaces/ISavingsAccount.sol";
-import {ICircleBuffer} from "../../src/interfaces/ICircleBuffer.sol";
+import {ISafetyNetPool} from "../../src/interfaces/ISafetyNetPool.sol";
 import {MockSavingsAccount} from "../mocks/MockSavingsAccount.sol";
 import {MockVRFCoordinatorV2} from "../mocks/MockVRFCoordinatorV2.sol";
-import {MockCircleBuffer} from "../mocks/MockCircleBuffer.sol";
+import {MockSafetyNetPool} from "../mocks/MockSafetyNetPool.sol";
 
 contract SavingsCircleTest is Test {
     // ── Local event copies for vm.expectEmit ──
@@ -24,7 +24,7 @@ contract SavingsCircleTest is Test {
 
     MockSavingsAccount internal sa;
     MockVRFCoordinatorV2 internal vrf;
-    MockCircleBuffer internal buf;
+    MockSafetyNetPool internal buf;
     SavingsCircle internal sc;
 
     // Test actors
@@ -48,10 +48,11 @@ contract SavingsCircleTest is Test {
     function setUp() public {
         sa = new MockSavingsAccount();
         vrf = new MockVRFCoordinatorV2();
-        buf = new MockCircleBuffer();
+        buf = new MockSafetyNetPool();
+        buf.setAvailableCapital(type(uint256).max); // pool always has capital in unit tests
         sc = new SavingsCircle(
             ISavingsAccount(address(sa)),
-            ICircleBuffer(address(buf)),
+            ISafetyNetPool(address(buf)),
             address(vrf),
             KEY_HASH,
             SUB_ID
@@ -69,13 +70,13 @@ contract SavingsCircleTest is Test {
     // ──────────────────────────────────────────────
 
     function _createDefault() internal returns (uint256 circleId) {
-        circleId = sc.createCircle(POOL, N, ROUND_DUR);
+        circleId = sc.createCircle(POOL, N, ROUND_DUR, 0);
     }
 
     function _joinAll(uint256 circleId, address[] memory actors) internal {
         for (uint256 i = 0; i < actors.length; i++) {
             vm.prank(actors[i]);
-            sc.joinCircle(circleId, "");
+            sc.joinCircle(circleId);
         }
     }
 
@@ -96,10 +97,10 @@ contract SavingsCircleTest is Test {
     function test_createCircle_succeeds() public {
         vm.expectEmit(true, false, false, true);
         emit CircleCreated(0, POOL, N, ROUND_DUR);
-        uint256 id = sc.createCircle(POOL, N, ROUND_DUR);
+        uint256 id = sc.createCircle(POOL, N, ROUND_DUR, 0);
         assertEq(id, 0);
 
-        (uint256 poolSize, uint16 memberCount,,,,,,, SavingsCircle.CircleStatus status) = sc.circles(id);
+        (uint256 poolSize, uint16 memberCount,,,,,,,  SavingsCircle.CircleStatus status,) = sc.circles(id);
         assertEq(poolSize, POOL);
         assertEq(memberCount, N);
         assertEq(uint8(status), uint8(SavingsCircle.CircleStatus.FORMING));
@@ -107,7 +108,7 @@ contract SavingsCircleTest is Test {
 
     function test_createCircle_revertsZeroPoolSize() public {
         vm.expectRevert(SavingsCircle.InvalidPoolSize.selector);
-        sc.createCircle(0, N, ROUND_DUR);
+        sc.createCircle(0, N, ROUND_DUR, 0);
     }
 
     /// @dev memberCount < MIN_MEMBERS (2) reverts
@@ -115,7 +116,7 @@ contract SavingsCircleTest is Test {
         vm.expectRevert(abi.encodeWithSelector(
             SavingsCircle.InvalidMemberCount.selector, uint16(1), sc.MIN_MEMBERS(), sc.MAX_MEMBERS()
         ));
-        sc.createCircle(POOL, 1, ROUND_DUR);
+        sc.createCircle(POOL, 1, ROUND_DUR, 0);
     }
 
     /// @dev memberCount > MAX_MEMBERS (1000) reverts
@@ -123,7 +124,7 @@ contract SavingsCircleTest is Test {
         vm.expectRevert(abi.encodeWithSelector(
             SavingsCircle.InvalidMemberCount.selector, uint16(1001), sc.MIN_MEMBERS(), sc.MAX_MEMBERS()
         ));
-        sc.createCircle(POOL, 1001, ROUND_DUR);
+        sc.createCircle(POOL, 1001, ROUND_DUR, 0);
     }
 
     /// @dev roundDuration = 0 is the only invalid duration (MIN = 1 minute for testnet)
@@ -132,13 +133,13 @@ contract SavingsCircleTest is Test {
             SavingsCircle.InvalidRoundDuration.selector,
             0, sc.MIN_ROUND_DURATION(), sc.MAX_ROUND_DURATION()
         ));
-        sc.createCircle(POOL, N, 0);
+        sc.createCircle(POOL, N, 0, 0);
     }
 
     /// @dev Any duration >= 1 minute is accepted — including sub-7-day values for testnet
     function test_createCircle_acceptsShortDurationForTestnet() public {
-        uint256 id = sc.createCircle(POOL, N, 1 minutes);
-        (,,, uint256 roundDuration,,,,,) = sc.circles(id);
+        uint256 id = sc.createCircle(POOL, N, 1 minutes, 0);
+        (,,, uint256 roundDuration,,,,,,) = sc.circles(id);
         assertEq(roundDuration, 1 minutes);
     }
 
@@ -149,7 +150,7 @@ contract SavingsCircleTest is Test {
         vm.expectRevert(abi.encodeWithSelector(
             SavingsCircle.PoolSizeNotDivisible.selector, badPool, N
         ));
-        sc.createCircle(badPool, N, ROUND_DUR);
+        sc.createCircle(badPool, N, ROUND_DUR, 0);
     }
 
     // ──────────────────────────────────────────────
@@ -163,16 +164,16 @@ contract SavingsCircleTest is Test {
             vm.expectEmit(true, false, false, true);
             emit MemberJoined(id, uint16(i), _shieldedId(members5[i]));
             vm.prank(members5[i]);
-            sc.joinCircle(id, "");
+            sc.joinCircle(id);
 
             // struct: poolSize(0) memberCount(1) contrib(2) roundDur(3) nextTs(4) filledSlots(5) ...
-            (,,,,, uint16 filledSlots,,,) = sc.circles(id);
+            (,,,,, uint16 filledSlots,,,,) = sc.circles(id);
             assertEq(filledSlots, i + 1);
         }
 
         // Last join activates — struct: poolSize(0) memberCount(1) contrib(2) roundDur(3)
         //   nextTs(4) filledSlots(5) roundsCompleted(6) pendingVrfReq(7) status(8)
-        (,,,,, uint16 slots,,, SavingsCircle.CircleStatus status) = sc.circles(id);
+        (,,,,, uint16 slots,,,  SavingsCircle.CircleStatus status,) = sc.circles(id);
         assertEq(slots, N);
         assertEq(uint8(status), uint8(SavingsCircle.CircleStatus.ACTIVE));
     }
@@ -180,7 +181,7 @@ contract SavingsCircleTest is Test {
     function test_joinCircle_setsObligation() public {
         uint256 id = _createDefault();
         vm.prank(alice);
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
 
         assertEq(sa.getCircleObligation(_shieldedId(alice)), CONTRIB);
     }
@@ -195,7 +196,7 @@ contract SavingsCircleTest is Test {
 
         vm.prank(extra);
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.CircleNotForming.selector, id));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     function test_joinCircle_revertsIfFull() public {
@@ -206,18 +207,18 @@ contract SavingsCircleTest is Test {
         // Test: try to join the now-active circle
         vm.prank(makeAddr("extra"));
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.CircleNotForming.selector, id));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     function test_joinCircle_revertsIfAlreadyMember() public {
         uint256 id = _createDefault();
         vm.prank(alice);
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
 
         bytes32 aliceId = _shieldedId(alice);
         vm.prank(alice);
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.AlreadyMember.selector, id, aliceId));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     function test_joinCircle_revertsIfInsufficientBalance() public {
@@ -231,7 +232,7 @@ contract SavingsCircleTest is Test {
         vm.expectRevert(abi.encodeWithSelector(
             SavingsCircle.InsufficientBalance.selector, CONTRIB - 1, CONTRIB
         ));
-        sc.joinCircle(id, "");
+        sc.joinCircle(id);
     }
 
     // ──────────────────────────────────────────────
@@ -242,7 +243,7 @@ contract SavingsCircleTest is Test {
         uint256 id = _createDefault();
         _joinAll(id, members5);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
 
         vm.expectRevert(abi.encodeWithSelector(
             SavingsCircle.RoundNotDue.selector, nextTs, block.timestamp
@@ -254,14 +255,14 @@ contract SavingsCircleTest is Test {
         uint256 id = _createDefault();
         _joinAll(id, members5);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
         vm.warp(nextTs);
 
         vm.expectEmit(true, false, false, false);
         emit RoundRequested(id, 1);
         sc.executeRound(id);
 
-        (,,,,,,,uint256 pendingReq,) = sc.circles(id);
+        (,,,,,,,uint256 pendingReq,,) = sc.circles(id);
         assertEq(pendingReq, 1);
     }
 
@@ -269,7 +270,7 @@ contract SavingsCircleTest is Test {
         uint256 id = _createDefault();
         _joinAll(id, members5);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
         vm.warp(nextTs);
 
         sc.executeRound(id);  // first call — VRF pending
@@ -288,30 +289,38 @@ contract SavingsCircleTest is Test {
         uint256 id = _createDefault();
         _joinAll(id, members5);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
         vm.warp(nextTs);
         sc.executeRound(id);
         uint256 reqId = vrf.getLastRequestId();
 
-        // randomWord = 0 → slot 0 (alice)
+        // Phase 1: VRF callback marks winner (slot 0 = alice for seed 0)
         vm.expectEmit(true, false, false, true);
         emit RoundExecuted(id, 1);
         vrf.fulfillRequest(reqId, 0);
 
-        // Slot 0 (alice) should have payout flag
-        assertTrue(sc.payoutReceived(id, 0));
+        // After Phase 1: payoutReceived and pendingPayout are set
+        assertTrue(sc.payoutReceived(id, 0), "payoutReceived after VRF");
+        assertTrue(sc.pendingPayout(id, 0), "pendingPayout after VRF");
 
-        // Alice's obligation raised to poolSize, balance credited with poolSize
+        // Obligation and balance NOT yet updated (two-phase design)
         bytes32 aliceId = _shieldedId(alice);
-        assertEq(sa.getCircleObligation(aliceId), POOL);
-        assertEq(sa.getPosition(aliceId).balance, CONTRIB * 2 + POOL);
+        assertEq(sa.getCircleObligation(aliceId), CONTRIB, "obligation unchanged before claimPayout");
+
+        // Phase 2: claimPayout settles the debt and credits balance
+        vm.prank(alice);
+        sc.claimPayout(id, 0);
+
+        assertFalse(sc.pendingPayout(id, 0), "pendingPayout cleared after claim");
+        assertEq(sa.getCircleObligation(aliceId), POOL, "obligation raised to poolSize");
+        assertEq(sa.getPosition(aliceId).balance, CONTRIB * 2 + POOL, "balance credited");
     }
 
     function test_vrfCallback_selectedMemberCannotBeSelectedAgain() public {
         uint256 id = _createDefault();
         _joinAll(id, members5);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
         vm.warp(nextTs);
 
         // Round 1 → always picks slot 0 (randomWord % 5 == 0 maps to eligible[0])
@@ -338,9 +347,9 @@ contract SavingsCircleTest is Test {
 
         sc.checkAndPause(id, 0);
         assertTrue(sc.positionPaused(id, 0));
-        assertEq(buf.coverCallCount(), 1);
+        assertEq(buf.coverSlotCallCount(), 1);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
         vm.warp(nextTs);
 
         // randomWord=0 → eligible[0] is slot 1 (slot 0 paused, 4 eligible)
@@ -356,7 +365,7 @@ contract SavingsCircleTest is Test {
         // alice has balance >= obligation
         sc.checkAndPause(id, 0);  // should not emit MemberPaused
         assertFalse(sc.positionPaused(id, 0));
-        assertEq(buf.coverCallCount(), 0);
+        assertEq(buf.coverSlotCallCount(), 0);
     }
 
     function test_checkAndPause_revertsIfAlreadyPaused() public {
@@ -385,10 +394,10 @@ contract SavingsCircleTest is Test {
 
         vm.expectEmit(true, false, false, true);
         emit MemberResumed(id, 0);
-        sc.resumePausedMember(id, 0, "");
+        sc.resumePausedMember(id, 0);
 
         assertFalse(sc.positionPaused(id, 0));
-        assertEq(buf.releaseCallCount(), 1);
+        assertEq(buf.releaseSlotCallCount(), 1);
     }
 
     function test_resumePausedMember_revertsIfNotPaused() public {
@@ -396,7 +405,7 @@ contract SavingsCircleTest is Test {
         _joinAll(id, members5);
 
         vm.expectRevert(abi.encodeWithSelector(SavingsCircle.MemberNotPaused.selector, id, 0));
-        sc.resumePausedMember(id, 0, "");
+        sc.resumePausedMember(id, 0);
     }
 
     // ──────────────────────────────────────────────
@@ -415,7 +424,7 @@ contract SavingsCircleTest is Test {
         }
         assertEq(sc.getEligibleCount(id), 0);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
         vm.warp(nextTs);
 
         sc.executeRound(id);
@@ -426,7 +435,7 @@ contract SavingsCircleTest is Test {
         vrf.fulfillRequest(reqId, 0);
 
         // No payout processed
-        (,,,,,, uint16 roundsCompleted,,) = sc.circles(id);
+        (,,,,,, uint16 roundsCompleted,,,) = sc.circles(id);
         assertEq(roundsCompleted, 0);
     }
 
@@ -438,7 +447,7 @@ contract SavingsCircleTest is Test {
         uint256 id = _createDefault();
         _joinAll(id, members5);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
 
         // Run all 5 rounds, always pick slot 0 first eligible
         for (uint8 round = 0; round < N; round++) {
@@ -446,7 +455,7 @@ contract SavingsCircleTest is Test {
             _executeAndFulfill(id, 0);
         }
 
-        (,,,,,,,, SavingsCircle.CircleStatus status) = sc.circles(id);
+        (,,,,,,,, SavingsCircle.CircleStatus status,) = sc.circles(id);
         assertEq(uint8(status), uint8(SavingsCircle.CircleStatus.COMPLETED));
     }
 
@@ -454,7 +463,7 @@ contract SavingsCircleTest is Test {
         uint256 id = _createDefault();
         _joinAll(id, members5);
 
-        (,,,,uint256 nextTs,,,, ) = sc.circles(id);
+        (,,,,uint256 nextTs,,,,, ) = sc.circles(id);
 
         for (uint8 round = 0; round < N; round++) {
             vm.warp(nextTs + round * ROUND_DUR);

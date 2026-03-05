@@ -17,6 +17,9 @@ interface ISavingsAccount {
         uint256 yieldEarnedTotal;
         uint256 lastUpdateTimestamp;
         bool emergencyExit;
+        /// @notice Accumulated Safety Net Pool debt in YieldRouter shares (separate ledger).
+        ///         Does NOT count toward the balance >= circleObligation invariant.
+        uint256 safetyNetDebtShares;
     }
 
     // ──────────────────────────────────────────────
@@ -38,6 +41,15 @@ interface ISavingsAccount {
     /// @notice Emitted when a member exits via the emergency path.
     event EmergencyExitExecuted(bytes32 indexed shieldedId, uint256 amountReturned);
 
+    /// @notice Emitted when safetyNetDebtShares is increased for a position.
+    event SafetyNetDebtAdded(bytes32 indexed shieldedId, uint256 shares);
+
+    /// @notice Emitted when safetyNetDebtShares is cleared at settlement.
+    event SafetyNetDebtCleared(bytes32 indexed shieldedId, uint256 settledShares);
+
+    /// @notice Emitted when interest is charged from a member's yield/balance.
+    event YieldCharged(bytes32 indexed shieldedId, uint256 total, uint256 fromYield, uint256 fromBalance);
+
     // ──────────────────────────────────────────────
     // Custom Errors
     // ──────────────────────────────────────────────
@@ -53,6 +65,9 @@ interface ISavingsAccount {
 
     /// @notice Raised when emergencyWithdraw is called but emergency is not active.
     error EmergencyNotActive();
+
+    /// @notice Raised when chargeFromYield would require dipping into locked principal.
+    error PositionInsolvent(bytes32 shieldedId);
 
     // ──────────────────────────────────────────────
     // Functions
@@ -105,4 +120,27 @@ interface ISavingsAccount {
     /// @param user The member's wallet address
     /// @return shieldedId Derived opaque identity commitment
     function computeShieldedId(address user) external view returns (bytes32 shieldedId);
+
+    // ── Safety Net Pool integration ──
+
+    /// @notice Increase the safetyNetDebt ledger for a position.
+    /// @dev Callable only by SafetyNetPool. Does not affect balance or circleObligation.
+    /// @param shieldedId Target position
+    /// @param shares YieldRouter shares representing the gap covered this round
+    function addSafetyNetDebt(bytes32 shieldedId, uint256 shares) external;
+
+    /// @notice Returns the accumulated safety-net debt shares for a position.
+    function getSafetyNetDebtShares(bytes32 shieldedId) external view returns (uint256);
+
+    /// @notice Reset safetyNetDebtShares to zero at payout settlement.
+    /// @dev Callable only by SavingsCircle.
+    /// @param shieldedId Target position
+    function clearSafetyNetDebt(bytes32 shieldedId) external;
+
+    /// @notice Charge interest from a member's yield earnings, then from free balance.
+    /// @dev Callable only by SafetyNetPool. Reverts PositionInsolvent if balance - obligation
+    ///      is insufficient to cover any remainder after yield is exhausted.
+    /// @param shieldedId Target position
+    /// @param amount USDC amount to deduct (6 decimals)
+    function chargeFromYield(bytes32 shieldedId, uint256 amount) external;
 }
