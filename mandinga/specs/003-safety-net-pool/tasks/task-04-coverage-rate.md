@@ -53,21 +53,16 @@ accrual round (added in Task 003-02).
 - [ ] T001 [P] Add `chargeFromYield(bytes32 shieldedId, uint256 amount) external` to `ISavingsAccount` interface in `contracts/src/interfaces/ISavingsAccount.sol`:
   - Callable only by `SafetyNetPool`
   - Deducts `amount` from `yieldEarnedTotal` first; if insufficient, remainder from `balance`
-  - Reverts `PositionInsolvent(shieldedId)` if `balance - circleObligation < remainder` (cannot charge from locked principal)
-  - Emits `YieldCharged(shieldedId, amount, fromYield, fromBalance)`
+  - **Explicit (CHK013):** `circleObligation` is **excluded** from available balance. Only
+    `balance - circleObligation` (the withdrawable portion) can be charged from balance.
+    If `balance - circleObligation < remainder`, revert `PositionInsolvent(shieldedId)`.
+  - Emits `YieldCharged(shieldedId, amount, fromYield, fromBalance)` where `fromYield + fromBalance == amount`
 - [ ] T002 Implement `chargeFromYield` in `contracts/src/core/SavingsAccount.sol` with `onlySafetyNetPool` modifier
 
 ### SafetyNetPool — accrual logic
 
-- [ ] T003 Add `lastAccrualTs` to `GapCoverage` struct (defined in Task 003-02) in `contracts/src/core/SafetyNetPool.sol`:
-  ```solidity
-  struct GapCoverage {
-      uint256 gapPerRound;
-      uint256 totalDeployedShares;
-      uint256 lastAccrualTs;       // ← new field
-  }
-  ```
-  Set `lastAccrualTs = block.timestamp` on first `coverGap` call.
+- [ ] T003 `GapCoverage.lastAccrualTs` is already declared in the canonical struct defined in **Task 003-02 T012**. No struct redefinition is needed here.
+  Verify that `coverGap` (Task 003-02 T013) sets `lastAccrualTs = block.timestamp` on the **first** call for a slot (i.e., when `gapCoverages[circleId][slot].lastAccrualTs == 0`).
 
 - [ ] T004 Implement `accrueInterest(uint256 circleId, uint16 slot) external` in `contracts/src/core/SafetyNetPool.sol`:
   ```
@@ -75,9 +70,18 @@ accrual round (added in Task 003-02).
   debtUsdc  = yieldRouter.convertToAssets(gapCoverages[circleId][slot].totalDeployedShares)
   interest  = debtUsdc × coverageRateBps × elapsed / (10_000 × 365 days)
   ```
-  - If `interest == 0` (called too frequently), return early without writing state
-  - Call `savingsAccount.chargeFromYield(memberId, interest)` using `ISavingsCircle(circle).getMember(circleId, slot)` to resolve `memberId`
+  Guards:
+  - If `gapCoverages[circleId][slot].lastAccrualTs == 0`: return early (slot not tracked or
+    already settled — post-deletion no-op) (CHK028)
+  - If `coverageRateBps == 0`: return early without writing state — the rate is zero, accrual
+    is a no-op. `lastAccrualTs` is NOT updated (preserves the elapsed window for when
+    governance sets a non-zero rate) (CHK031)
+  - If `elapsed < MIN_ACCRUAL_INTERVAL`: return early (T005)
+  - If `interest == 0` (rounding truncation): return early without writing state
+  - `memberId = gapCoverages[circleId][slot].memberId`
+  - Call `savingsAccount.chargeFromYield(memberId, interest)`
   - Update `gapCoverages[circleId][slot].lastAccrualTs = block.timestamp`
+  - `totalInterestCollected += interest` (accounting variable — see Notes, CHK043)
   - Emits `InterestAccrued(circleId, slot, memberId, interest)`
 
 - [ ] T005 Make `accrueInterest` permissionless (callable by anyone) — consistent with how
@@ -94,7 +98,8 @@ accrual round (added in Task 003-02).
       uint256 interest = _computeInterest(circleId, slot);
       if (interest == 0) return;
       bytes32 memberId = _getMember(circleId, slot);
-      try savingsAccount.chargeFromYield(memberId, interest) {
+      try {
+          savingsAccount.chargeFromYield(memberId, interest);
           gapCoverages[circleId][slot].lastAccrualTs = block.timestamp;
           emit InterestAccrued(circleId, slot, memberId, interest);
       } catch {
@@ -118,7 +123,9 @@ accrual round (added in Task 003-02).
   - `grossUsdc = circles[circleId].poolSize`
   - `debtUsdc = convertToAssets(gapCoverages[circleId][slot].totalDeployedShares)`
   - `interestUsdc = getAccruedInterest(circleId, slot)`
-  - `netUsdc = grossUsdc - debtUsdc - interestUsdc`
+  - **Underflow guard (CHK004):** `netUsdc = debtUsdc + interestUsdc >= grossUsdc ? 0 : grossUsdc - debtUsdc - interestUsdc`
+    (floor at 0; the solvency guarantee prevents this in production, but it is possible in
+    adversarial test scenarios where yield exceeds the pool size)
 
 ### ISafetyNetPool interface
 
@@ -127,15 +134,25 @@ accrual round (added in Task 003-02).
 ### Tests
 
 - [ ] T010 Unit test `test_accrueInterest_chargesYieldAfterTime` in `contracts/test/unit/SafetyNetPool.t.sol`:
-  - Member has $40 gap covered for 30 days at 5% APY
-  - `accrueInterest` charges ≈ $0.16 from member's yieldEarnedTotal
-  - Verify `lastAccrualTs` updated
+  - Member has $40 USDC (= 40_000_000 units) gap covered for 30 days at 5% APY (500 bps)
+  - Exact expected value (CHK023):
+    ```
+    elapsed  = 30 × 86400 = 2_592_000 seconds
+    interest = 40_000_000 × 500 × 2_592_000 / (10_000 × 365 × 86400)
+             = 51_840_000_000_000_000 / 315_360_000_000
+             = 164_383 (USDC 6-decimal units, integer truncation)
+    ```
+    `assertEq(interest, 164_383)` — no tolerance/approximation; integer division is deterministic
+  - Verify `lastAccrualTs` updated, `totalInterestCollected == 164_383`
 - [ ] T011 Unit test `test_accrueInterest_noopIfTooEarly` (called within MIN_ACCRUAL_INTERVAL)
 - [ ] T012 Unit test `test_accrueInterest_chargesBalance_whenYieldInsufficient`:
   - Member's `yieldEarnedTotal = 0`, `balance - obligation` has sufficient free balance
   - Charge comes from balance, position remains solvent
-- [ ] T013 Unit test `test_accrueInterest_revertsPositionInsolvent`:
-  - Member has zero yield and zero withdrawable balance → `PositionInsolvent` revert
+- [ ] T013 Unit test `test_accrueInterest_revertsPositionInsolvent` (CHK024):
+  - Member has `yieldEarnedTotal = 0` and `balance = circleObligation` (zero withdrawable)
+  - External call `accrueInterest` reverts with `PositionInsolvent` (propagated to caller)
+  - Note: `_accrueInterestInternal` (called from `settleGapDebt`) uses `try/catch` and does NOT
+    propagate this revert — that behavior is covered by T017
 - [ ] T014 Unit test `test_chargeFromYield_revertsIfNotPool` in `contracts/test/unit/SavingsAccount.t.sol`
 - [ ] T015 Unit test `test_settleGapDebt_accruesInterestFirst` — verifies auto-accrual in T006
 - [ ] T017 Unit test `test_accrueInterestInternal_forgivesInterest_whenPositionInsolvent`:
@@ -182,15 +199,21 @@ accrual round (added in Task 003-02).
 
 ## Notes
 
+- **Interest accrual while paused (CHK006):** interest continues accruing on
+  `safetyNetDebtShares` while a member is paused. The `gapCoverages` entry persists
+  through pause/resume and `lastAccrualTs` advances normally. If the pause is long,
+  the accrued interest grows proportionally. This is accepted behavior — the debt
+  remains outstanding until `claimPayout` settles it.
 - **APY-linked rate (future):** to switch from fixed `coverageRateBps` to APY-linked,
   replace `coverageRateBps` in the interest formula with
   `yieldRouter.getBlendedAPY() + premiumBps`. No interface changes needed.
-- **Interest as pool revenue:** the interest charged from members increases the pool's
-  effective yield for depositors. In the current fungible model, this is implicit —
-  the USDC charged from the member's position stays in the protocol and represents
-  extra return. A cleaner model would route it explicitly to the pool's `totalCapital`,
-  but this requires minting additional YieldRouter shares. For v1, track it via an
-  `totalInterestCollected` accounting variable and add a `harvestInterest()` function
-  for later.
+- **Interest revenue mechanism (CHK043 resolution):** in v1, interest charged from members
+  is tracked via `totalInterestCollected uint256` (new accounting variable on `SafetyNetPool`).
+  This variable does NOT directly increase `totalDeployed` or mint YieldRouter shares.
+  The USDC remains in the protocol's implicit float. A separate `harvestInterest()` function
+  (future v2) will convert `totalInterestCollected` to YieldRouter shares, increasing depositors'
+  yield. This separates the "track" and "distribute" steps cleanly. **T004 must increment
+  `totalInterestCollected += interest` after each successful `chargeFromYield` call.** Add
+  `totalInterestCollected` to the Output Files section (state variable in `SafetyNetPool.sol`).
 - **`MockSavingsAccount`** needs a `chargeFromYield` stub and `yieldEarnedTotal` tracking
   for the new unit tests.
