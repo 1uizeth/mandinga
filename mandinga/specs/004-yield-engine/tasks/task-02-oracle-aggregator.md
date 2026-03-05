@@ -33,7 +33,7 @@ See: Spec 004, US-003 (Oracle Integration).
 
 ## Acceptance Criteria
 
-- [ ] Contract file created at `backend/contracts/yield/OracleAggregator.sol`
+- [ ] Contract file created at `contracts/src/yield/OracleAggregator.sol`
 - [ ] Constructor accepts an array of Chainlink AggregatorV3Interface addresses
 - [ ] `getRate() returns (uint256 rate, bool circuitBreakerActive)`:
   - Queries all registered feeds
@@ -58,8 +58,8 @@ See: Spec 004, US-003 (Oracle Integration).
 
 ## Output Files
 
-- `backend/contracts/yield/OracleAggregator.sol`
-- `backend/test/unit/OracleAggregator.t.sol`
+- `contracts/src/yield/OracleAggregator.sol`
+- `test/unit/OracleAggregator.t.sol`
 
 ---
 
