@@ -5,6 +5,8 @@ Auto-generated from all feature plans. Last updated: 2026-02-27
 ## Active Technologies
 - TypeScript 5.x (Node 20+ or Bun) + `@chainlink/cre-sdk`, `viem` v2, Bun (package manager) (006-automation)
 - N/A — workflows are stateless; state read from chain (006-automation)
+- TypeScript 5.x (Node 20+ or Bun) + Next.js 14 (App Router), wagmi v2, viem v2, Tailwind CSS, shadcn/ui (007-defi-dashboard)
+- N/A — state read from chain (007-defi-dashboard)
 
 ### Contracts (`contracts/`)
 - Solidity ^0.8.20 + Foundry (forge)
@@ -14,7 +16,14 @@ Auto-generated from all feature plans. Last updated: 2026-02-27
 - Aave V3 (sole yield source in v1 — `AaveAdapter.sol`)
 - Real-world yield sources (Ondo/Superstate) and `OracleAggregator` deferred to v2
 
-### Frontend (`frontend/`)
+### Webapp (`webapp/`) — Spec 007
+- Next.js 14 (App Router)
+- TypeScript (strict)
+- wagmi v2 + viem v2 (Ethereum interactions)
+- Tailwind CSS (Light/Dark mode) + shadcn/ui
+- Layout reference: [v0-mandingafront.vercel.app](https://v0-mandingafront.vercel.app/)
+
+### Frontend (`frontend/`) — Legacy
 - Next.js 14 (App Router)
 - TypeScript (strict)
 - wagmi v2 + viem v2 (Ethereum interactions)
@@ -46,6 +55,12 @@ mandinga-protocol/
 │   │   ├── integration/
 │   │   └── invariant/
 │   └── lib/              ← Foundry git submodule dependencies
+├── webapp/               ← Spec 007 DeFi Dashboard (Next.js, wagmi, Tailwind)
+│   └── src/
+│       ├── app/
+│       ├── components/   (atoms → molecules → organisms → templates)
+│       ├── hooks/
+│       └── lib/abi/
 └── frontend/
     └── src/
         ├── app/          ← Pages (thin: compose Templates + call hooks)
@@ -70,11 +85,19 @@ forge test --match-path "test/invariant/*" --invariant-runs 10000
 forge script script/DeployYieldEngine.s.sol --broadcast --network base_sepolia
 ```
 
-### Frontend
+### Webapp (Spec 007)
 ```bash
-# from frontend/
+# from webapp/
 npm run dev                    # start Next.js dev server
 npm run build                  # production build
+npm run lint
+```
+
+### Frontend (Legacy)
+```bash
+# from frontend/
+npm run dev
+npm run build
 npm run lint
 ```
 
@@ -103,10 +126,10 @@ npm run lint
 - `executeRound()` is permissionless — selection determined by VRF only
 
 ## Recent Changes
+- 007-defi-dashboard: Added TypeScript 5.x (Node 20+ or Bun) + Next.js 14 (App Router), wagmi v2, viem v2, Tailwind CSS, shadcn/ui
 - 006-automation: Added TypeScript 5.x (Node 20+ or Bun) + `@chainlink/cre-sdk`, `viem` v2, Bun (package manager)
 
 - 004-aave-only-yield: Yield engine scoped to Aave V3 only in v1; OndoAdapter and OracleAggregator deferred to v2
-- 003-atomic-design: Frontend components restructured to Atomic Design (atoms → molecules → organisms → templates → pages)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
