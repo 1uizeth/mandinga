@@ -1,24 +1,36 @@
-import { AppHeader } from "@/components/organisms/AppHeader";
+"use client";
+
 import { DashboardTemplate } from "@/components/templates/DashboardTemplate";
+import { useAccount } from "wagmi";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
+  const { isConnected } = useAccount();
+
   return (
     <DashboardTemplate
-      header={<AppHeader />}
       main={
-        <div className="flex flex-col items-center justify-center py-16 gap-6">
-          <h1 className="text-3xl font-bold">Mandinga</h1>
-          <p className="text-muted-foreground text-center max-w-md">
-            DeFi Dashboard — connect your wallet to access savings, circles, and
-            yield.
-          </p>
-          <Link
-            href="/dashboard"
-            className="rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-          >
-            Go to Dashboard
-          </Link>
+        <div className="flex flex-col items-center justify-center py-12 gap-6">
+          {isConnected ? (
+            <>
+              <h1 className="text-2xl font-semibold">Welcome to Mandinga</h1>
+              <p className="text-muted-foreground text-center max-w-md">
+                DeFi Dashboard — access your savings, circles, and yield.
+              </p>
+              <Link href="/dashboard">
+                <Button>Go to Dashboard</Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-semibold">Connect your wallet</h1>
+              <p className="text-muted-foreground text-center max-w-md">
+                Connect your wallet to access savings, circles, and yield. Use
+                the Connect button in the header.
+              </p>
+            </>
+          )}
         </div>
       }
     />

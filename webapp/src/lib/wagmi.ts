@@ -1,14 +1,10 @@
-import { http, createConfig } from "wagmi";
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { baseSepolia } from "wagmi/chains";
-import { injected } from "wagmi/connectors";
 
-export const config = createConfig({
+export const config = getDefaultConfig({
+  appName: "Mandinga",
+  projectId:
+    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "00000000000000000000000000000000",
   chains: [baseSepolia],
-  connectors: [injected()],
   ssr: true,
-  transports: {
-    [baseSepolia.id]: http(
-      process.env.NEXT_PUBLIC_RPC_URL ?? "https://base-sepolia-rpc.publicnode.com"
-    ),
-  },
 });

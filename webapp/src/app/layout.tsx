@@ -1,8 +1,10 @@
+import "@/lib/polyfills";
 import type { Metadata } from "next";
 import { GeistPixelLine } from "geist/font/pixel";
 import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
+import { AppHeader } from "@/components/organisms/AppHeader";
 
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
@@ -25,7 +27,12 @@ export default function RootLayout({
       <body
         className={`${GeistPixelLine.variable} ${geistMono.variable} font-sans antialiased`}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          <div className="min-h-screen flex flex-col">
+            <AppHeader />
+            <main className="flex-1">{children}</main>
+          </div>
+        </Providers>
       </body>
     </html>
   );
