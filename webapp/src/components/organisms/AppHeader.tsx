@@ -1,10 +1,18 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAccount } from "wagmi";
+import { cn } from "@/lib/utils";
 import { WalletConnectButton } from "@/components/molecules/WalletConnectButton";
 import { ThemeToggle } from "@/components/molecules/ThemeToggle";
 
 export function AppHeader() {
+  const { isConnected } = useAccount();
+  const pathname = usePathname();
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background">
+    <header className="sticky top-0 z-50 w-full">
       <div className="flex h-16 md:h-20 w-full items-center justify-between px-4 md:px-6 lg:px-8">
         <Link
           href="/"
@@ -12,10 +20,39 @@ export function AppHeader() {
         >
           Mandinga
         </Link>
-        <div className="flex items-center gap-2">
+        <nav className="flex items-center gap-4">
+          {isConnected && (
+            <div className="no-scrollbar flex gap-2 overflow-x-auto">
+              <Link
+                href="/dashboard"
+                className={cn(
+                  "inline-flex h-9 shrink-0 items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  pathname === "/dashboard"
+                    ? "bg-accent/10 text-foreground shadow-[0_0_0_1px] shadow-accent"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-current={pathname === "/dashboard" ? "page" : undefined}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/circles"
+                className={cn(
+                  "inline-flex h-9 shrink-0 items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  pathname === "/circles"
+                    ? "bg-accent/10 text-foreground shadow-[0_0_0_1px] shadow-accent"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                aria-current={pathname === "/circles" ? "page" : undefined}
+              >
+                Circles
+              </Link>
+            </div>
+          )}
           <ThemeToggle />
+          <div className="hidden h-5 border border-secondary xl:block" />
           <WalletConnectButton />
-        </div>
+        </nav>
       </div>
     </header>
   );

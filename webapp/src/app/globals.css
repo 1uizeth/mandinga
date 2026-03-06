@@ -47,6 +47,23 @@
   .text-muted {
     color: var(--textMuted);
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Card in dark mode: RainbowKit-style gradient */
+  .dark .card-dark-gradient {
+    background: linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.075),
+      rgba(255, 255, 255, 0.15)
+    );
+  }
 }
 
 @layer base {

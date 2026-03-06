@@ -88,17 +88,17 @@ forge script script/DeployYieldEngine.s.sol --broadcast --network base_sepolia
 ### Webapp (Spec 007)
 ```bash
 # from webapp/
-npm run dev                    # start Next.js dev server
-npm run build                  # production build
-npm run lint
+pnpm dev                       # start Next.js dev server
+pnpm build                     # production build
+pnpm lint
 ```
 
 ### Frontend (Legacy)
 ```bash
 # from frontend/
-npm run dev
-npm run build
-npm run lint
+pnpm dev
+pnpm build
+pnpm lint
 ```
 
 ## Code Style
