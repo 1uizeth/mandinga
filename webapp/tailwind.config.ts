@@ -10,9 +10,19 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "var(--font-geist-mono)", "monospace"],
-        handwriting: ["var(--font-patrick-hand)", "cursive"],
-        "share-tech-mono": ["var(--font-share-tech-mono)", "monospace"],
+        sans: [
+          "var(--font-geist-pixel-line)",
+          "var(--font-geist-mono)",
+          "ui-monospace",
+          "SFMono-Regular",
+          "Roboto Mono",
+          "Menlo",
+          "Monaco",
+          "Liberation Mono",
+          "DejaVu Sans Mono",
+          "Courier New",
+          "monospace",
+        ],
       },
       colors: {
         background: "hsl(var(--background))",

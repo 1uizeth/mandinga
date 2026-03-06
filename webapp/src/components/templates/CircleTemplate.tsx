@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Grid } from "@/components/ui/grid";
 
 interface CircleTemplateProps {
@@ -15,11 +16,15 @@ export function CircleTemplate({
   return (
     <div className="min-h-screen flex flex-col">
       {header}
-      <main className="flex-1 container mx-auto px-4 py-6">
-        {filters && (
-          <div className="mb-6 flex flex-wrap gap-4">{filters}</div>
-        )}
-        <Grid cols={3}>{cardGrid}</Grid>
+      <main className="flex-1 flex items-start justify-center p-4 md:p-6">
+        <Card className="w-full max-w-4xl">
+          <CardContent className="p-6 md:p-8">
+            {filters && (
+              <div className="mb-6 flex flex-wrap gap-4">{filters}</div>
+            )}
+            <Grid cols={3}>{cardGrid}</Grid>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
