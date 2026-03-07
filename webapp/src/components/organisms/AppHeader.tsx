@@ -26,10 +26,10 @@ export function AppHeader() {
               <Link
                 href="/dashboard"
                 className={cn(
-                  "inline-flex h-9 shrink-0 items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  "inline-flex h-9 shrink-0 items-center px-4 py-2 text-sm font-medium transition-all duration-200",
                   pathname === "/dashboard"
-                    ? "bg-accent/10 text-foreground shadow-[0_0_0_1px] shadow-accent"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "rounded-[9px] bg-accent/10 text-foreground shadow-[0_0_0_1px] shadow-accent"
+                    : "rounded-lg text-muted-foreground hover:rounded-[9px] hover:shadow-[0_0_0_1px] hover:shadow-accent hover:text-foreground"
                 )}
                 aria-current={pathname === "/dashboard" ? "page" : undefined}
               >
@@ -38,10 +38,10 @@ export function AppHeader() {
               <Link
                 href="/circles"
                 className={cn(
-                  "inline-flex h-9 shrink-0 items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+                  "inline-flex h-9 shrink-0 items-center px-4 py-2 text-sm font-medium transition-all duration-200",
                   pathname === "/circles"
-                    ? "bg-accent/10 text-foreground shadow-[0_0_0_1px] shadow-accent"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "rounded-[9px] bg-accent/10 text-foreground shadow-[0_0_0_1px] shadow-accent"
+                    : "rounded-lg text-muted-foreground hover:rounded-[9px] hover:shadow-[0_0_0_1px] hover:shadow-accent hover:text-foreground"
                 )}
                 aria-current={pathname === "/circles" ? "page" : undefined}
               >

@@ -84,6 +84,9 @@
     --accent-foreground: 0 0% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
+    --success: 151 55% 42%;
+    --error: 8 73% 54%;
+    --warning: 33 88% 60%;
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
@@ -128,45 +131,66 @@
   }
 
   .dark {
-    /* Surface tokens for dark mode */
-    --surface: rgba(10, 10, 10, 0.82);
-    --surface-strong: rgba(18, 18, 18, 0.95);
-    --surfaceBorder: rgba(255, 255, 255, 0.1);
-    --textMuted: rgb(163, 163, 163);
-    --pageBg: rgb(3, 3, 3);
+    /* Custom dark theme palette */
+    --main: 0 0% 12.5%;
+    --white: 0 0% 100%;
+    --accent-brand: 207 93% 49%;
+    --accent-secondary: 44 31% 68%;
+    --success: 151 55% 42%;
+    --error: 8 73% 54%;
+    --warning: 33 88% 60%;
+    --gray-50: 0 0% 96.5%;
+    --gray-100: 0 0% 95.3%;
+    --gray-200: 0 0% 91.4%;
+    --gray-300: 0 0% 81.6%;
+    --gray-400: 0 0% 73.3%;
+    --gray-500: 0 0% 60.4%;
+    --gray-600: 0 0% 42.4%;
+    --gray-700: 0 0% 31%;
+    --gray-800: 0 0% 21.2%;
+    --gray-900: 0 0% 16.5%;
+    --gray-1000: 0 0% 14.5%;
 
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Surface tokens for dark mode */
+    --surface: rgba(32, 32, 32, 0.82);
+    --surface-strong: rgba(37, 37, 37, 0.95);
+    --surfaceBorder: rgba(255, 255, 255, 0.1);
+    --textMuted: hsl(var(--gray-400));
+    --pageBg: hsl(var(--gray-1000));
+
+    /* Shadcn theme mapped to custom palette */
+    --background: var(--main);
+    --foreground: var(--white);
+    --card: var(--gray-900);
+    --card-foreground: var(--white);
+    --popover: var(--gray-900);
+    --popover-foreground: var(--white);
+    --primary: var(--accent-brand);
+    --primary-foreground: var(--white);
+    --secondary: var(--gray-800);
+    --secondary-foreground: var(--white);
+    --muted: var(--gray-800);
+    --muted-foreground: var(--gray-400);
+    --accent: var(--accent-brand);
+    --accent-foreground: var(--white);
+    --destructive: var(--error);
+    --destructive-foreground: var(--white);
+    --border: var(--gray-700);
+    --input: var(--gray-800);
+    --ring: var(--accent-brand);
+    --chart-1: var(--accent-brand);
+    --chart-2: var(--success);
+    --chart-3: var(--warning);
+    --chart-4: var(--accent-secondary);
+    --chart-5: var(--error);
+    --sidebar-background: var(--gray-1000);
+    --sidebar-foreground: var(--white);
+    --sidebar-primary: var(--accent-brand);
+    --sidebar-primary-foreground: var(--white);
+    --sidebar-accent: var(--gray-800);
+    --sidebar-accent-foreground: var(--white);
+    --sidebar-border: var(--gray-700);
+    --sidebar-ring: var(--accent-brand);
   }
 }
 

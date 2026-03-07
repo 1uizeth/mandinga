@@ -23,7 +23,6 @@ export interface Position {
 
 export function useSavingsPosition() {
   const { shieldedId, isLoading: shieldedLoading } = useShieldedId();
-  console.log("shieldedId", shieldedId);
   const {
     data: positionData,
     isLoading: positionLoading,
