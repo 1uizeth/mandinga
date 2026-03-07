@@ -18,7 +18,7 @@
 ```bash
 # From repo root
 cd webapp
-npm install   # or: bun install
+pnpm install   # or: bun install
 
 # Copy env template
 cp .env.example .env.local
@@ -45,7 +45,7 @@ cp .env.example .env.local
 
 ```bash
 # From webapp/
-npm run dev   # or: bun run dev
+pnpm dev
 # Open http://localhost:3000
 ```
 
@@ -54,8 +54,8 @@ npm run dev   # or: bun run dev
 ## Build & Lint
 
 ```bash
-npm run build   # Production build
-npm run lint    # ESLint
+pnpm build                     # Production build
+pnpm lint                      # ESLint
 ```
 
 ---

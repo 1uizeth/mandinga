@@ -36,7 +36,7 @@ contract YieldRouter is IYieldRouter, ERC4626, ReentrancyGuard, Ownable {
 
     uint256 public constant MAX_FEE_BPS = 2000;   // 20% hard ceiling
     uint256 public constant MAX_BUFFER_BPS = 1000; // 10% hard ceiling
-    uint256 public constant HARVEST_COOLDOWN = 1 hours;
+    uint256 public constant HARVEST_COOLDOWN = 5 minutes;
 
     // ──────────────────────────────────────────────
     // Immutables
@@ -211,7 +211,7 @@ contract YieldRouter is IYieldRouter, ERC4626, ReentrancyGuard, Ownable {
 
     /// @inheritdoc IYieldRouter
     /// @dev Permissionless — callable by anyone (MEV bots, keepers, protocol).
-    ///      Enforces 1-hour cooldown. When APY drops > 50%, sets circuit breaker flag,
+    ///      Enforces 5-minute cooldown. When APY drops > 50%, sets circuit breaker flag,
     ///      emits `CircuitBreakerTripped`, and returns early without harvesting yield.
     ///      Subsequent calls with the flag active revert with `CircuitBreakerActive`.
     function harvest() external override nonReentrant {

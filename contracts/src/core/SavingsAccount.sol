@@ -42,6 +42,9 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
     /// @notice Position data keyed by shieldedId.
     mapping(bytes32 => Position) private _positions;
 
+    /// @notice Sum of all position balances (principal). Used for yield display.
+    uint256 public totalPrincipal;
+
     /// @dev Per-user nonce used to derive the shieldedId.
     ///      v1 keeps nonce at 0 for each user (one position per address).
     mapping(address => uint256) private _commitmentNonces;
@@ -127,6 +130,7 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
 
         _positions[shieldedId].balance += amount;
         _positions[shieldedId].lastUpdateTimestamp = block.timestamp;
+        totalPrincipal += amount;
 
         stablecoin.forceApprove(address(yieldRouter), amount);
         yieldRouter.allocate(amount);
@@ -149,6 +153,7 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
         // Update state before external calls (checks-effects-interactions).
         pos.balance -= amount;
         pos.lastUpdateTimestamp = block.timestamp;
+        totalPrincipal -= amount;
 
         // ERC4626 withdraw: burns shares from this contract, sends USDC to msg.sender.
         yieldRouter.withdraw(amount, msg.sender, address(this));
@@ -171,6 +176,7 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
         // Release obligation and mark position as exited before external call.
         pos.circleObligation = 0;
         pos.balance = 0;
+        totalPrincipal -= fullBalance;
         pos.emergencyExit = true;
         pos.lastUpdateTimestamp = block.timestamp;
 
@@ -188,6 +194,7 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
 
         _positions[shieldedId].balance += amount;
         _positions[shieldedId].lastUpdateTimestamp = block.timestamp;
+        totalPrincipal += amount;
 
         _assertInvariant(shieldedId);
 
@@ -205,6 +212,7 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
         _positions[shieldedId].balance += amount;
         _positions[shieldedId].yieldEarnedTotal += amount;
         _positions[shieldedId].lastUpdateTimestamp = block.timestamp;
+        totalPrincipal += amount;
 
         _assertInvariant(shieldedId);
 
@@ -285,6 +293,7 @@ contract SavingsAccount is ISavingsAccount, ReentrancyGuard {
         }
 
         pos.lastUpdateTimestamp = block.timestamp;
+        totalPrincipal -= amount;
         emit YieldCharged(shieldedId, amount, fromYield, fromBalance);
     }
 

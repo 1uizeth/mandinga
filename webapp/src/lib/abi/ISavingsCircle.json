@@ -1,0 +1,124 @@
+{
+  "abi": [
+    {
+      "type": "function",
+      "name": "circles",
+      "inputs": [
+        {
+          "name": "circleId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "poolSize",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "memberCount",
+          "type": "uint16",
+          "internalType": "uint16"
+        },
+        {
+          "name": "contributionPerMember",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "roundDuration",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "nextRoundTimestamp",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "filledSlots",
+          "type": "uint16",
+          "internalType": "uint16"
+        },
+        {
+          "name": "roundsCompleted",
+          "type": "uint16",
+          "internalType": "uint16"
+        },
+        {
+          "name": "pendingVrfRequestId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "status",
+          "type": "uint8",
+          "internalType": "enum SavingsCircle.CircleStatus"
+        },
+        {
+          "name": "minDepositPerRound",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getMember",
+      "inputs": [
+        {
+          "name": "circleId",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        {
+          "name": "slot",
+          "type": "uint16",
+          "internalType": "uint16"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32",
+          "internalType": "bytes32"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getMembers",
+      "inputs": [
+        {
+          "name": "circleId",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "",
+          "type": "bytes32[]",
+          "internalType": "bytes32[]"
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "nextCircleId",
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "stateMutability": "view"
+    }
+  ]
+}

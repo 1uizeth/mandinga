@@ -55,6 +55,7 @@ contract SavingsAccountTest is Test {
     address internal bob = makeAddr("bob");
     address internal emergencyModule = makeAddr("emergencyModule");
     address internal savingsCircle = makeAddr("savingsCircle");
+    address internal safetyNetPool = makeAddr("safetyNetPool");
     address internal attacker = makeAddr("attacker");
 
     uint256 internal constant DEPOSIT_1K = 1_000e6;
@@ -63,7 +64,7 @@ contract SavingsAccountTest is Test {
     function setUp() public {
         usdc = new MockUSDC();
         router = new MockYieldRouter(address(usdc));
-        sa = new SavingsAccount(IYieldRouter(address(router)), emergencyModule, savingsCircle, address(usdc), address(0));
+        sa = new SavingsAccount(IYieldRouter(address(router)), emergencyModule, savingsCircle, address(usdc), safetyNetPool);
 
         // Fund the router with USDC so it can service withdrawals
         usdc.mint(address(router), 100_000e6);
@@ -336,6 +337,73 @@ contract SavingsAccountTest is Test {
         vm.prank(alice);
         vm.expectRevert(SavingsAccount.PositionAlreadyExited.selector);
         sa.emergencyWithdraw();
+    }
+
+    // ──────────────────────────────────────────────
+    // totalPrincipal
+    // ──────────────────────────────────────────────
+
+    function test_totalPrincipal_increasesOnDeposit() public {
+        assertEq(sa.totalPrincipal(), 0);
+        _depositAs(alice, DEPOSIT_1K);
+        assertEq(sa.totalPrincipal(), DEPOSIT_1K);
+    }
+
+    function test_totalPrincipal_decreasesOnWithdraw() public {
+        _depositAs(alice, DEPOSIT_1K);
+        assertEq(sa.totalPrincipal(), DEPOSIT_1K);
+
+        vm.prank(alice);
+        sa.withdraw(300e6);
+
+        assertEq(sa.totalPrincipal(), 700e6);
+    }
+
+    function test_totalPrincipal_updatesOnCreditPrincipal() public {
+        _depositAs(alice, DEPOSIT_1K);
+        bytes32 id = _shieldedId(alice);
+
+        vm.prank(savingsCircle);
+        sa.creditPrincipal(id, 100e6);
+
+        assertEq(sa.totalPrincipal(), DEPOSIT_1K + 100e6);
+    }
+
+    function test_totalPrincipal_updatesOnCreditYield() public {
+        _depositAs(alice, DEPOSIT_1K);
+        bytes32 id = _shieldedId(alice);
+
+        vm.prank(address(router));
+        sa.creditYield(id, 50e6);
+
+        assertEq(sa.totalPrincipal(), DEPOSIT_1K + 50e6);
+    }
+
+    function test_totalPrincipal_decreasesOnChargeFromYield() public {
+        _depositAs(alice, DEPOSIT_1K);
+        bytes32 id = _shieldedId(alice);
+
+        vm.prank(address(router));
+        sa.creditYield(id, 50e6);
+        assertEq(sa.totalPrincipal(), DEPOSIT_1K + 50e6);
+
+        vm.prank(safetyNetPool);
+        sa.chargeFromYield(id, 30e6);
+
+        assertEq(sa.totalPrincipal(), DEPOSIT_1K + 20e6);
+    }
+
+    function test_totalPrincipal_decreasesOnEmergencyWithdraw() public {
+        _depositAs(alice, DEPOSIT_1K);
+        assertEq(sa.totalPrincipal(), DEPOSIT_1K);
+
+        vm.prank(emergencyModule);
+        sa.activateEmergency();
+
+        vm.prank(alice);
+        sa.emergencyWithdraw();
+
+        assertEq(sa.totalPrincipal(), 0);
     }
 
     // ──────────────────────────────────────────────

@@ -107,6 +107,11 @@ contract DeployYieldEngine is Script {
             c.subscriptionId
         );
 
+        // Seed SafetyNetPool with 200,000 USDC (deployer must hold the tokens)
+        uint256 seedAmount = 200_000 * 1e6; // 200,000 USDC (6 decimals)
+        IERC20(c.usdc).approve(address(safetyNetPool), seedAmount);
+        safetyNetPool.deposit(seedAmount, 0);
+
         vm.stopBroadcast();
 
         console.log("Deployed to Base Sepolia:");

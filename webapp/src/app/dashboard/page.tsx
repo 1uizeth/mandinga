@@ -1,14 +1,14 @@
 import { DashboardTemplate } from "@/components/templates/DashboardTemplate";
+import { SavingsPositionCard } from "@/components/organisms/SavingsPositionCard";
+import { YieldOverview } from "@/components/organisms/YieldOverview";
 
 export default function DashboardPage() {
   return (
     <DashboardTemplate
       main={
         <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Dashboard</h2>
-          <p className="text-muted-foreground">
-            Connect your wallet to view your savings account and yield.
-          </p>
+          <YieldOverview />
+          <SavingsPositionCard />
         </div>
       }
     />
