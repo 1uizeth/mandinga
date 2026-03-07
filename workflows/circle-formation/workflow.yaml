@@ -1,0 +1,15 @@
+base-sepolia:
+  user-workflow:
+    workflow-name: "mandinga-circle-formation-base-sepolia"
+  workflow-artifacts:
+    workflow-path: "./index.ts"
+    config-path: "./config.base-sepolia.json"
+    secrets-path: "../secrets.yaml"
+
+base-mainnet:
+  user-workflow:
+    workflow-name: "mandinga-circle-formation-base-mainnet"
+  workflow-artifacts:
+    workflow-path: "./index.ts"
+    config-path: "./config.base-mainnet.json"
+    secrets-path: "../secrets.yaml"

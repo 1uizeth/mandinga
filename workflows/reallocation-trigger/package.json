@@ -1,0 +1,15 @@
+{
+  "name": "mandinga-reallocation-trigger",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@chainlink/cre-sdk": "^1.0.9",
+    "viem": "^2.47.0"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  },
+  "scripts": {
+    "postinstall": "bunx cre-setup"
+  }
+}

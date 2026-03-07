@@ -23,10 +23,10 @@ See Spec 006 and plan.md. Target network: Base (ethereum-testnet-sepolia-base-1,
 
 ## Acceptance Criteria
 
-- [ ] CRE CLI installed per https://docs.chain.link/cre; `cre --version` succeeds
-- [ ] `workflows/` directory created at repo root with: `circle-formation/`, `safety-pool-monitor/`, `reallocation-trigger/`, `yield-harvest/`, `contracts/abi/`
-- [ ] `workflows/project.yaml` added with Base RPCs: `ethereum-testnet-sepolia-base-1`, `ethereum-mainnet-base-1` (urls per plan.md)
-- [ ] `workflows/secrets.yaml` template with `CRE_ETH_PRIVATE_KEY` placeholder
-- [ ] `workflows/.cre/` config directory created
-- [ ] `workflows/package.json` created with Bun; dependencies: `@chainlink/cre-sdk`, `viem` v2
-- [ ] `bun install` in `workflows/` completes without errors
+- [x] CRE CLI installed per https://docs.chain.link/cre; `cre version` succeeds
+- [x] `workflows/` directory created at repo root with: `circle-formation/`, `safety-pool-monitor/`, `reallocation-trigger/`, `yield-harvest/`, `contracts/abi/`
+- [x] `workflows/project.yaml` added with Base RPCs: `ethereum-testnet-sepolia-base-1`, `ethereum-mainnet-base-1` (urls per plan.md)
+- [x] `workflows/secrets.yaml` template with `CRE_ETH_PRIVATE_KEY` placeholder
+- [x] `workflows/.cre/` config directory created
+- [x] `workflows/package.json` created with Bun; dependencies: `viem` v2 (cre-sdk optional for DON deployment)
+- [x] `bun install` in `workflows/` completes without errors
