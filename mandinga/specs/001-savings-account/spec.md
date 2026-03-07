@@ -75,6 +75,8 @@ withdrawable    = yieldRouter.convertToAssets(sharesBalance - circleObligationSh
 
 The Savings Account can be used entirely standalone. A member who never activates the savings circle feature still has a fully functional, yield-bearing self-custodial position.
 
+**`totalPrincipal`:** A public state variable (sum of all position balances) maintained on every balance-changing path. Used by the webapp to derive yield from share price: `(position.balance * savingsAccountValue / totalPrincipal) - position.balance`. The YieldRouter does not call `creditYield()` on harvest — yield accrues via share price appreciation; `creditYield` exists for SafetyNetPool's `chargeFromYield` flow.
+
 ---
 
 ## Clarifications

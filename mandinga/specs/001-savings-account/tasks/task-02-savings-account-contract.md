@@ -46,6 +46,10 @@ See: Spec 001 all user stories, plan.md §3.1.
   - Adds yield to `positions[shieldedId].balance`
   - Updates `yieldEarnedTotal`
   - Emits `YieldCredited`
+  - **Note:** YieldRouter does NOT call this on harvest; yield accrues via share price appreciation. `creditYield` is used by SafetyNetPool when crediting yield from other flows.
+- [x] `totalPrincipal` — public state variable (sum of all position balances):
+  - Updated on `deposit` (+), `withdraw` (-), `emergencyWithdraw` (-), `creditPrincipal` (+), `creditYield` (+), `chargeFromYield` (-)
+  - Used by webapp to derive yield from share price: `(position.balance * savingsAccountValue / totalPrincipal) - position.balance`
 - [x] `setCircleObligation(bytes32 shieldedId, uint256 amount)` — callable only by SavingsCircle:
   - Sets `circleObligation`
   - Validates `balance >= amount` (reverts with `PrincipalLockViolation` if not)

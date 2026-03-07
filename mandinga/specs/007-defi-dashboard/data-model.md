@@ -72,10 +72,17 @@
 |-----------|------|--------|-------|
 | cumulativeYieldUsdc | `bigint` | Derived | Total yield since first deposit |
 | currentBalanceUsdc | `bigint` | From position | Current balance |
-| principalUsdc | `bigint` | Historical or derived | Total deposited |
-| yieldUsdc | `bigint` | currentBalance - principal | Approximate |
+| principalUsdc | `bigint` | position.balance | Principal (deposited amount) |
+| yieldUsdc | `bigint` | positionValue - principal | Derived from share price |
 
-**Note:** Exact cumulative yield requires tracking deposit/withdrawal history or on-chain events. For v1, approximate as: `currentBalance - sum(deposits) + sum(withdrawals)` if tracked; else use share-price delta from initial deposit.
+**Yield derivation:** Yield accrues via share price appreciation in the YieldRouter (ERC4626). The webapp derives `cumulativeYieldUsdc` as:
+
+```
+positionValue = (position.balance * savingsAccountValue) / totalPrincipal
+cumulativeYieldUsdc = positionValue - position.balance
+```
+
+Where `savingsAccountValue = yieldRouter.convertToAssets(yieldRouter.balanceOf(savingsAccount))` and `totalPrincipal` is from `SavingsAccount.totalPrincipal()`. Do **not** use `position.yieldEarnedTotal` for display — YieldRouter does not call `creditYield()` on harvest.
 
 ---
 
@@ -85,6 +92,7 @@
 |------|----------|-----------------|
 | shieldedId | SavingsAccount | getShieldedId(address) or keccak256(abi.encodePacked(address, nonce)) |
 | position | SavingsAccount | getPosition(shieldedId) |
+| totalPrincipal | SavingsAccount | totalPrincipal() |
 | sharesBalance | YieldRouter | balanceOf(SavingsAccount) |
 | balanceUsdc | YieldRouter | convertToAssets(shares) |
 | circle | SavingsCircle | circles(circleId) |

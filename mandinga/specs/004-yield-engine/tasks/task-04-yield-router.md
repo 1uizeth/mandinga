@@ -39,7 +39,7 @@ See: Spec 004 v0.5.
 ### Harvesting
 - [x] `harvest()` — permissionless; calls `sparkAdapter.harvest()`; deducts fee + buffer; net yield stays in pool; emits `YieldHarvested` ✓
 - [x] `harvest()` returns early on zero yield (idempotent) ✓
-- [x] 1-hour cooldown — `HARVEST_COOLDOWN = 1 hours`; reverts `HarvestCooldownActive` ✓
+- [x] 5-minute cooldown — `HARVEST_COOLDOWN = 5 minutes`; reverts `HarvestCooldownActive` ✓
 
 ### Circuit Breaker
 - [x] APY drop > 50% → sets `circuitBreakerTripped = true`, emits `CircuitBreakerTripped`, returns early ✓

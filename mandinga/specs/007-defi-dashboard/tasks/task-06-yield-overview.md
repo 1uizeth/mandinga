@@ -4,6 +4,8 @@
 
 **Independent Test**: Deposit → Wait for yield → See cumulative yield displayed
 
+**Implementation note:** Yield is derived from share price appreciation, not from `position.yieldEarnedTotal`. The YieldRouter does not call `creditYield()` on harvest. The `useCumulativeYield` hook computes `(position.balance * savingsAccountValue / totalPrincipal) - position.balance` using `totalPrincipal`, `balanceOf(SA)`, and `convertToAssets(shares)` from the contracts.
+
 ---
 
 - [x] T039 [P] [US4] Create useCumulativeYield hook in webapp/src/hooks/useCumulativeYield.ts
