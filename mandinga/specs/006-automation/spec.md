@@ -87,11 +87,11 @@ The Automation Layer uses Chainlink CRE (Compute Runtime Environment) to provide
 **Purpose:** Monitor Aave V3 yield rate and trigger `harvest()` on a fixed schedule. APY check is for monitoring only.
 
 **Behaviour:**
-- Workflow runs `harvest()` on YieldRouter on a **fixed cron schedule** (e.g. 1x/day — `0 0 * * *` at midnight UTC)
+- Workflow runs `harvest()` on YieldRouter on a **fixed cron schedule** every 5 minutes (`*/5 * * * *`) — aligned with `HARVEST_COOLDOWN = 5 minutes` in YieldRouter
 - Separate workflow or same workflow reads current APY from Aave (or yield router) for monitoring/alerting — no harvest trigger based on threshold
 - Circuit breaker (if anomalous conditions detected) may be triggered separately; harvest logic is schedule-driven, not threshold-driven
 
-**Open:** Exact harvest schedule (1x/day default), circuit breaker integration.
+**Open:** Circuit breaker integration.
 
 ---
 
@@ -104,7 +104,7 @@ The Automation Layer uses Chainlink CRE (Compute Runtime Environment) to provide
 - **FR-001a:** Safety Pool trigger: the **member** calls the pool contract; CRE workflow only monitors and alerts when coverage is needed
 - **FR-001b:** Non-payment reallocation: 1 round grace period — reallocation is initiated only after the member fails `minDepositPerRound` for one full round
 - **FR-001c:** Circle formation cron: workflow runs every 1 hour
-- **FR-001d:** Yield harvest: `harvest()` on fixed cron schedule (e.g. 1x/day); APY check for monitoring only, not threshold-triggered
+- **FR-001d:** Yield harvest: `harvest()` on fixed cron schedule every 5 minutes (`*/5 * * * *`); APY check for monitoring only, not threshold-triggered
 - **FR-002:** Each workflow MUST be independently deployable and configurable
 - **FR-003:** Workflows MUST be permissionless in terms of who can trigger — the DON executes them on schedule
 - **FR-004:** Workflows MUST handle contract failures gracefully (retry, backoff, alerting)

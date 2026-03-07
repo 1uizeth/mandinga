@@ -1,0 +1,20 @@
+{
+  "name": "mandinga-workflows",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync-abi": "bun run ./scripts/sync-abi.ts",
+    "simulate:circle-formation": "cre workflow simulate workflows/circle-formation",
+    "simulate:safety-pool-monitor": "cre workflow simulate workflows/safety-pool-monitor",
+    "simulate:reallocation-trigger": "cre workflow simulate workflows/reallocation-trigger",
+    "simulate:yield-harvest": "cre workflow simulate workflows/yield-harvest"
+  },
+  "dependencies": {
+    "viem": "^2.47.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}

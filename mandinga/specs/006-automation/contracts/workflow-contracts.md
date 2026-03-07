@@ -8,7 +8,12 @@
 
 **Source**: Spec 002 US-006 (AC-006-1 to AC-006-4). Kickoff algorithm runs off-chain in CRE; workflow submits result.
 
-### Read (view/pure)
+**Gap:** Queue contract (`getQueuedIntents`) not deployed. Until it exists, use one of:
+- **intentsUrl** — HTTP GET to backend API returning `{ intents: { memberId, depositPerRound, duration }[] }`
+- **intents** — Config array for testing (same shape)
+- **Queue contract** — When deployed, call `getQueuedIntents(depositPerRound, duration)` on Queue address
+
+### Read (view/pure) — target interface when Queue/Formation exist
 
 | Contract | Method | Purpose |
 |----------|--------|---------|
@@ -16,11 +21,14 @@
 | YieldRouter | `getBlendedAPY()` or equivalent | Kickoff viability (AC-006-2) |
 | Governance | `formationThreshold()` | Default 70% (AC-006-3) |
 
-### Write
+### Write — circle formation (SavingsCircle)
 
 | Contract | Method | Purpose |
 |----------|--------|---------|
-| Formation / CircleFactory | `formCircle(bytes32 queueGroupId, uint8 selectedN, bytes32[] memberIds)` | Create circle; backend implements per Spec 002 US-006 |
+| SavingsCircle | `createCircle(poolSize, memberCount, roundDuration, minDepositPerRound)` | Create circle in FORMING state; workflow derives params from kickoff |
+| SavingsCircle | `joinCircle(circleId)` | Per-member; called by each member (msg.sender), not by workflow |
+
+**ABI:** `workflows/contracts/abi/SavingsCircle.json` (synced from `contracts/out/`).
 
 ---
 
@@ -31,7 +39,7 @@
 | Contract | Method | Purpose |
 |----------|--------|---------|
 | SavingsCircle | `getActiveCircles()`, `getMembersWithMinOption(circleId)` | Find members needing coverage |
-| SavingsAccount | `getBalance(shieldedId)` | Compare to depositPerRound |
+| SavingsAccount | `getWithdrawableBalance(shieldedId)` | Compare to depositPerRound (or minDepositPerRound for min-installment members) |
 
 ---
 
@@ -71,7 +79,7 @@
 
 ## ABI Sync
 
-ABIs are synced from `backend/out/` to `workflows/contracts/abi/`:
+ABIs are synced from `contracts/out/` (Foundry) to `workflows/contracts/abi/`:
 
 - `YieldRouter.json`
 - `SavingsCircle.json` (or equivalent)

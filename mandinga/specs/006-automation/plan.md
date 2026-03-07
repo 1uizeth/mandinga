@@ -19,7 +19,7 @@ Implement the Chainlink CRE (Compute Runtime Environment) automation layer for M
 **Testing**: `cre workflow simulate <path>`, unit tests for workflow logic  
 **Target Platform**: Chainlink DON (decentralised oracle network); Base chain  
 **Project Type**: Off-chain automation workflows (TypeScript)  
-**Performance Goals**: Circle formation within 1h of queue readiness; harvest 1x/day  
+**Performance Goals**: Circle formation within 1h of queue readiness; harvest every 5 min  
 **Constraints**: CRE DON deployment required; ACE (Access Control Engine) for workflow auth  
 **Scale/Scope**: 4 workflows; single-chain (Base) v1
 
@@ -97,7 +97,7 @@ mandinga-protocol/
 - [ ] Call initiateReallocation after 1 round grace
 
 ### Milestone 4: Yield Harvest (Week 6)
-- [ ] Cron: 1x/day
+- [ ] Cron: every 5 min (`*/5 * * * *`)
 - [ ] Call YieldRouter.harvest()
 
 ### Milestone 5: DON Deployment (Weeks 7–8)

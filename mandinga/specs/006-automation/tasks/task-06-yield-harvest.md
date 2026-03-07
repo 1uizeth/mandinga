@@ -11,19 +11,19 @@
 
 ## Objective
 
-Workflow runs 1x/day; calls `YieldRouter.harvest()` on Base.
+Workflow runs every 5 minutes; calls `YieldRouter.harvest()` on Base. Aligned with `HARVEST_COOLDOWN = 5 minutes` in YieldRouter.
 
 ---
 
 ## Context
 
-Use Case 4 — Spec 006. Cron: `0 0 * * *` (midnight UTC). APY check optional for monitoring.
+Use Case 4 — Spec 006. Cron: `*/5 * * * *` (every 5 min). APY check optional for monitoring.
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] `workflows/yield-harvest/index.ts` with cron trigger `0 0 * * *`
+- [ ] `workflows/yield-harvest/index.ts` with cron trigger `*/5 * * * *`
 - [ ] `workflows/yield-harvest/tasks/index.ts`
 - [ ] Harvest task in `workflows/yield-harvest/tasks/harvest.ts`: encode and submit `harvest()` on YieldRouter; wrap with errorHandler for retry/backoff/alert (FR-004)
 - [ ] Task wired in index.ts

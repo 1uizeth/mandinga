@@ -59,7 +59,7 @@ cre workflow simulate workflows/yield-harvest
 | circle-formation | `0 * * * *` (every 1h) | Base |
 | safety-pool-monitor | Round-aligned or every N min | Base |
 | reallocation-trigger | Round-aligned | Base |
-| yield-harvest | `0 0 * * *` (1x/day) | Base |
+| yield-harvest | `*/5 * * * *` (every 5 min) | Base |
 
 ---
 

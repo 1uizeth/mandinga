@@ -30,7 +30,7 @@ export function YieldOverview() {
 
   if (!hasYield) {
     return (
-      <Card className="w-full min-h-[160px]">
+      <Card className="w-full">
         <CardHeader>
           <h3 className="text-lg font-semibold">Yield Earned</h3>
         </CardHeader>
@@ -45,7 +45,7 @@ export function YieldOverview() {
   }
 
   return (
-    <Card className="w-full min-h-[160px]">
+    <Card className="w-full">
       <CardHeader>
         <h3 className="text-lg font-semibold">Yield Earned</h3>
       </CardHeader>
