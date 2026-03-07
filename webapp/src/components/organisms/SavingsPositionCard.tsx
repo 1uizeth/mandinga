@@ -92,7 +92,7 @@ function PositionContent({
 
   return (
     <>
-      <Card className="w-full min-h-[380px]">
+      <Card className="w-full">
         <CardHeader>
           <h3 className="text-lg font-semibold">Savings Account</h3>
         </CardHeader>
@@ -149,7 +149,7 @@ export function SavingsPositionCard() {
 
   if (isLoading) {
     return (
-      <Card className="w-full min-h-[380px]">
+      <Card className="w-full">
         <CardHeader>
           <Skeleton className="h-5 w-36" />
         </CardHeader>
