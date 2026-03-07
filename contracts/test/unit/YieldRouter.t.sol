@@ -163,7 +163,7 @@ contract YieldRouterTest is Test {
         adapter.setAPY(500); // 5%
         adapter.setHarvestYield(100e6); // 100 USDC gross yield
 
-        vm.warp(block.timestamp + 1 hours + 1); // past cooldown
+        vm.warp(block.timestamp + 5 minutes + 1); // past cooldown
 
         router.harvest();
 
@@ -182,7 +182,7 @@ contract YieldRouterTest is Test {
         adapter.setAPY(500);
         adapter.setHarvestYield(100e6);
 
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         uint256 expectedTs = block.timestamp; // already warped
 
         vm.expectEmit(false, false, false, true);
@@ -197,7 +197,7 @@ contract YieldRouterTest is Test {
         adapter.setAPY(500);
         // No yield set
 
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         router.harvest(); // returns 0, no event
 
         assertEq(usdc.balanceOf(treasury), 0);
@@ -208,7 +208,7 @@ contract YieldRouterTest is Test {
         router.allocate(1000e6);
 
         adapter.setHarvestYield(10e6);
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         router.harvest(); // first harvest ok
 
         // Second harvest before cooldown should revert
@@ -216,7 +216,7 @@ contract YieldRouterTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(
                 YieldRouter.HarvestCooldownActive.selector,
-                block.timestamp + 1 hours
+                block.timestamp + 5 minutes
             )
         );
         router.harvest();
@@ -228,11 +228,11 @@ contract YieldRouterTest is Test {
 
         adapter.setAPY(500); // 5%
         adapter.setHarvestYield(10e6);
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         router.harvest(); // records lastHarvestApyBps = 500
 
         // Advance time and drop APY by > 50%
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         adapter.setAPY(200); // dropped from 500 to 200 — > 50% drop
 
         // First harvest with drop: sets flag and returns (does NOT revert)
@@ -240,7 +240,7 @@ contract YieldRouterTest is Test {
         assertTrue(router.circuitBreakerTripped());
 
         // Subsequent harvest reverts
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         vm.expectRevert(IYieldRouter.CircuitBreakerActive.selector);
         router.harvest();
     }
@@ -328,7 +328,7 @@ contract YieldRouterTest is Test {
 
         adapter.setAPY(500);
         adapter.setHarvestYield(50e6); // 5% yield
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         router.harvest();
 
         uint256 assetsAfter = router.convertToAssets(sharesBefore);
@@ -341,10 +341,10 @@ contract YieldRouterTest is Test {
     function _tripCircuitBreaker() internal {
         adapter.setAPY(500);
         adapter.setHarvestYield(10e6);
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         router.harvest(); // records lastHarvestApyBps = 500
 
-        vm.warp(block.timestamp + 1 hours + 1);
+        vm.warp(block.timestamp + 5 minutes + 1);
         adapter.setAPY(100); // >50% drop
         // First call sets the flag and returns — does NOT revert
         router.harvest();
