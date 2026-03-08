@@ -13,36 +13,31 @@ import YieldRouterAbi from "@/lib/abi/IYieldRouter.json";
 export function useCumulativeYield() {
   const { position, isLoading: positionLoading } = useSavingsPosition();
 
-  const { data: totalPrincipal } = useReadContract({
+  const { data: totalPrincipal, isLoading: totalPrincipalLoading } = useReadContract({
     address: SAVINGS_ACCOUNT,
     abi: SavingsAccountAbi.abi as never,
     functionName: "totalPrincipal",
   });
 
-  const { data: savingsAccountShares } = useReadContract({
+  const { data: savingsAccountShares, isLoading: sharesLoading } = useReadContract({
     address: YIELD_ROUTER,
     abi: YieldRouterAbi.abi as never,
     functionName: "balanceOf",
     args: [SAVINGS_ACCOUNT],
   });
 
-  const { data: savingsAccountValue } = useReadContract({
+  const { data: savingsAccountValue, isLoading: valueLoading } = useReadContract({
     address: YIELD_ROUTER,
     abi: YieldRouterAbi.abi as never,
     functionName: "convertToAssets",
     args: savingsAccountShares !== undefined ? [savingsAccountShares] : undefined,
   });
 
-  console.log("savingsAccountValue", savingsAccountValue);
-  console.log("totalPrincipal", totalPrincipal);
-  console.log("savingsAccountShares", savingsAccountShares);
-  console.log("position", position);
-
   const isLoading =
     positionLoading ||
-    totalPrincipal === undefined ||
-    savingsAccountShares === undefined ||
-    savingsAccountValue === undefined;
+    totalPrincipalLoading ||
+    sharesLoading ||
+    (savingsAccountShares !== undefined && valueLoading);
 
   let cumulativeYieldUsdc = BigInt(0);
 

@@ -5,8 +5,11 @@ import { useAccount } from "wagmi";
 import { CircleTemplate } from "@/components/templates/CircleTemplate";
 import { CircleStatusPanel } from "@/components/organisms/CircleStatusPanel";
 import { useUserCircles, type UserCircle, type CircleStatus } from "@/hooks/useUserCircles";
+import { useMockCircles } from "@/hooks/useMockCircles";
 import { CirclesSkeleton } from "@/components/organisms/CirclesSkeleton";
 import { Label } from "@/components/ui/label";
+
+const IS_MOCK = process.env.NEXT_PUBLIC_MOCK_DEPOSIT === "true";
 
 type SortBy = "circleId" | "nextRound" | "status";
 type StatusFilter = "all" | "0" | "1" | "2";
@@ -42,7 +45,9 @@ function CirclesContent({
   sortBy: SortBy;
   statusFilter: StatusFilter;
 }) {
-  const { circles, isLoading } = useUserCircles();
+  const real = useUserCircles();
+  const mock = useMockCircles();
+  const { circles, isLoading } = IS_MOCK ? mock : real;
 
   const sortedCircles = useMemo(
     () => filterAndSortCircles(circles, sortBy, statusFilter),

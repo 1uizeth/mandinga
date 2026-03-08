@@ -106,6 +106,11 @@ const config: Config = {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.6" },
         },
+        "balance-flash": {
+          "0%": { color: "hsl(var(--success))" },
+          "60%": { color: "hsl(var(--success))" },
+          "100%": { color: "hsl(var(--foreground))" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -113,6 +118,7 @@ const config: Config = {
         "modal-in": "modal-in 0.2s ease-out",
         "modal-overlay-in": "modal-overlay-in 0.2s ease-out",
         "step-pulse": "step-pulse 1.5s ease-in-out infinite",
+        "balance-flash": "balance-flash 0.8s ease-out forwards",
       },
     },
   },

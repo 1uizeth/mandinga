@@ -1,220 +1,181 @@
 "use client";
 
-import { useSavingsPosition, type SavingsPosition } from "@/hooks/useSavingsPosition";
+import { useState, useRef, useEffect } from "react";
+import { useAccount } from "wagmi";
+import { useSavingsPosition } from "@/hooks/useSavingsPosition";
 import { useDeposit } from "@/hooks/useDeposit";
-import { TokenAmountDisplay } from "@/components/molecules/TokenAmountDisplay";
-import { StatCard } from "@/components/molecules/StatCard";
+import { useMockDeposit } from "@/hooks/useMockDeposit";
+import { useYieldAccrual } from "@/hooks/useYieldAccrual";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Spinner } from "@/components/atoms/Spinner";
 import { TransactionModal } from "@/components/organisms/TransactionModal";
-import type { TxStep } from "@/types/deposit";
-import { useState, useRef } from "react";
 
-function EmptyState() {
-  return (
-    <Card>
-      <CardContent className="p-8 text-center">
-        <p className="text-muted-foreground mb-4">
-          No balance yet. Deposit USDC to activate your savings account and start
-          earning yield.
-        </p>
-      </CardContent>
-    </Card>
-  );
+const IS_MOCK = process.env.NEXT_PUBLIC_MOCK_DEPOSIT === "true";
+const DISPLAY_APY = "4.5%";
+
+function formatDisplayBalance(total: number): string {
+  const whole = Math.floor(total);
+  const cents = Math.floor((total - whole) * 100).toString().padStart(2, "0");
+  return `${whole.toLocaleString()}.${cents}`;
 }
 
-function DepositForm({
-  onDeposit,
-  isPending,
-  error,
-}: {
-  onDeposit: (amount: string) => void | Promise<void>;
-  isPending: boolean;
-  error: Error | null;
-}) {
-  const [amount, setAmount] = useState("");
+interface SavingsPositionCardProps {
+  externalDepositOpen?: boolean;
+  onExternalDepositClose?: () => void;
+}
 
-  const handleDeposit = async () => {
-    if (!amount || parseFloat(amount) <= 0) return;
-    await onDeposit(amount);
-    setAmount("");
+export function SavingsPositionCard({
+  externalDepositOpen,
+  onExternalDepositClose,
+}: SavingsPositionCardProps) {
+  const { isConnected } = useAccount();
+  const realPosition = useSavingsPosition();
+  const refetchRef = useRef(realPosition.refetch);
+  refetchRef.current = realPosition.refetch;
+
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const realDeposit = useDeposit({ onSuccess: () => refetchRef.current?.() });
+  const mockDeposit = useMockDeposit();
+
+  const { position, isLoading } = IS_MOCK
+    ? {
+        position: {
+          balance: mockDeposit.balance,
+          isActive: mockDeposit.balance > BigInt(0),
+          withdrawable: mockDeposit.balance,
+          circleObligation: BigInt(0),
+        },
+        isLoading: false,
+      }
+    : realPosition;
+
+  const { depositToSavings, isPending, error, txStep, txAmount, resetTxState } =
+    IS_MOCK ? mockDeposit : realDeposit;
+
+  const handleClose = () => {
+    resetTxState();
+    setModalOpen(false);
+    onExternalDepositClose?.();
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="deposit-amount">Amount (USDC)</Label>
-        <Input
-          id="deposit-amount"
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          disabled={isPending}
-        />
-      </div>
-      <Button onClick={handleDeposit} disabled={isPending || !amount}>
-        {isPending ? <Spinner size="sm" /> : "Deposit"}
-      </Button>
-      {error && (
-        <p className="text-sm text-destructive">{error.message}</p>
-      )}
-    </div>
-  );
-}
+  const isModalOpen = modalOpen || !!externalDepositOpen;
 
-function PositionContent({
-  position,
-  depositToSavings,
-  isPending,
-  error,
-  txStep,
-  txAmount,
-  resetTxState,
-}: {
-  position: SavingsPosition;
-  depositToSavings: (amount: string) => Promise<void>;
-  isPending: boolean;
-  error: Error | null;
-  txStep: TxStep;
-  txAmount: string | null;
-  resetTxState: () => void;
-}) {
-  const handleRetry = () => {
-    if (txAmount) depositToSavings(txAmount);
-  };
+  const balance = position?.balance ?? BigInt(0);
+  const hasBalance = balance > BigInt(0);
+  const { earned } = useYieldAccrual(balance);
 
-  return (
-    <>
-      <Card className="w-full min-h-[380px]">
-        <CardHeader>
-          <h3 className="text-lg font-semibold">Savings Account</h3>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <StatCard
-              label="Balance"
-              value={<TokenAmountDisplay amount={position.balance} />}
-            />
-            <StatCard
-              label="Withdrawable"
-              value={<TokenAmountDisplay amount={position.withdrawable} />}
-              subValue={
-                position.circleObligation > BigInt(0)
-                  ? `${position.circleObligation.toString()} locked in circle`
-                  : undefined
-              }
-            />
-          </div>
-          <DepositForm
-            onDeposit={depositToSavings}
-            isPending={isPending}
-            error={error}
-          />
-        </CardContent>
-      </Card>
-      <TransactionModal
-        open={txStep !== "idle"}
-        onClose={resetTxState}
-        step={txStep}
-        amount={txAmount ?? undefined}
-        error={error}
-        onRetry={handleRetry}
-      />
-    </>
-  );
-}
+  const balanceFloat = Number(balance) / 1_000_000;
+  const totalDisplay = balanceFloat + earned;
+  const displayCents = Math.floor(totalDisplay * 100);
 
-export function SavingsPositionCard() {
-  const { position, isLoading, refetch } = useSavingsPosition();
-  const refetchRef = useRef(refetch);
-  refetchRef.current = refetch;
+  const prevCentsRef = useRef(-1);
+  const [flashKey, setFlashKey] = useState(0);
 
-  const {
-    depositToSavings,
-    isPending,
-    error,
-    txStep,
-    txAmount,
-    resetTxState,
-  } = useDeposit({
-    onSuccess: () => refetchRef.current?.(),
-  });
+  useEffect(() => {
+    if (!hasBalance) {
+      prevCentsRef.current = -1;
+      return;
+    }
+    if (prevCentsRef.current === -1) {
+      prevCentsRef.current = displayCents;
+      return;
+    }
+    if (displayCents !== prevCentsRef.current) {
+      prevCentsRef.current = displayCents;
+      setFlashKey((k) => k + 1);
+    }
+  }, [displayCents, hasBalance]);
 
   if (isLoading) {
     return (
-      <Card className="w-full min-h-[380px]">
-        <CardHeader>
-          <Skeleton className="h-5 w-36" />
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card>
-              <CardContent className="p-4">
-                <Skeleton className="h-4 w-16 mb-2" />
-                <Skeleton className="h-7 w-24" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <Skeleton className="h-4 w-24 mb-2" />
-                <Skeleton className="h-7 w-20" />
-              </CardContent>
-            </Card>
-          </div>
-          <div className="space-y-4">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-24" />
-          </div>
+      <Card className="w-full">
+        <CardContent className="p-10 flex flex-col items-center gap-6">
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-16 w-44" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-11 w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  if (!position || !position.isActive) {
-    return (
-      <>
-        <EmptyState />
-        <Card>
-          <CardHeader>
-            <h3 className="text-lg font-semibold">Activate Account</h3>
-          </CardHeader>
-          <CardContent>
-            <DepositForm
-              onDeposit={depositToSavings}
-              isPending={isPending}
-              error={error}
-            />
-          </CardContent>
-        </Card>
-        <TransactionModal
-          open={txStep !== "idle"}
-          onClose={resetTxState}
-          step={txStep}
-          amount={txAmount ?? undefined}
-          error={error}
-          onRetry={() => txAmount && depositToSavings(txAmount)}
-        />
-      </>
-    );
-  }
-
   return (
-    <PositionContent
-      position={position}
-      depositToSavings={depositToSavings}
-      isPending={isPending}
-      error={error}
-      txStep={txStep}
-      txAmount={txAmount}
-      resetTxState={resetTxState}
-    />
+    <>
+      <Card className="w-full">
+        <CardContent className="p-10 flex flex-col items-center text-center gap-7">
+          <p className="text-xs text-muted-foreground font-medium tracking-widest uppercase">
+            Savings Account
+          </p>
+
+          <div className="flex flex-col items-center gap-1.5">
+            <span
+              key={flashKey}
+              role={isConnected ? "button" : undefined}
+              tabIndex={isConnected ? 0 : undefined}
+              aria-label={isConnected ? "Open deposit" : undefined}
+              onClick={() => isConnected && setModalOpen(true)}
+              onKeyDown={(e) => isConnected && e.key === "Enter" && setModalOpen(true)}
+              className={`text-6xl font-semibold tabular-nums leading-none tracking-tight transition-colors select-none ${isConnected ? "cursor-pointer hover:opacity-70" : "cursor-default"} ${!hasBalance ? "text-muted-foreground/40" : ""} ${flashKey > 0 ? "animate-balance-flash" : ""}`}
+            >
+              {formatDisplayBalance(totalDisplay)}
+            </span>
+            <span className="text-base text-muted-foreground font-medium">USDC</span>
+          </div>
+
+          {/* Yield module */}
+          <div className="w-full rounded-xl border border-border bg-muted/40 px-5 py-4 flex flex-col gap-4">
+
+            {earned >= 0.0001 ? (
+              <>
+                {/* Earned */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Earned</span>
+                  <span className="text-xl font-mono tabular-nums font-semibold text-success">
+                    +{earned.toFixed(4)} USDC
+                  </span>
+                </div>
+
+                <div className="h-px bg-border" />
+              </>
+            ) : !hasBalance ? (
+              <p className="text-xs text-muted-foreground">
+                Deposit to start earning. Yield accrues every second.
+              </p>
+            ) : null}
+
+            {/* APY pill */}
+            <div className="flex justify-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-success/30 bg-success/10 px-3 py-1">
+                <span
+                  className={`inline-block h-2 w-2 rounded-full bg-success shrink-0 ${hasBalance ? "animate-pulse" : ""}`}
+                />
+                <span className="text-sm font-semibold text-success">{DISPLAY_APY} APY</span>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            size="lg"
+            className="w-full"
+            onClick={() => setModalOpen(true)}
+            disabled={isPending || !isConnected}
+          >
+            {isConnected ? "Deposit" : "Connect Wallet to Deposit"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <TransactionModal
+        open={isModalOpen || txStep !== "idle"}
+        onClose={handleClose}
+        step={txStep}
+        amount={txAmount ?? undefined}
+        error={error}
+        onRetry={() => txAmount && depositToSavings(txAmount)}
+        onConfirm={(amount) => depositToSavings(amount)}
+      />
+    </>
   );
 }

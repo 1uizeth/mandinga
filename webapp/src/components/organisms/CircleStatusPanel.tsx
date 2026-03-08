@@ -13,7 +13,7 @@ function formatNextRound(nextRoundTimestamp: bigint): string {
   const ts = Number(nextRoundTimestamp);
   if (ts === 0) return "—";
   const date = new Date(ts * 1000);
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleString(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
   });

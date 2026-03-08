@@ -1,14 +1,17 @@
 import { ReactNode } from "react";
-// import { Card, CardContent } from "@/components/ui/card";
 
 interface DashboardTemplateProps {
   main: ReactNode;
+  below?: ReactNode;
 }
 
-export function DashboardTemplate({ main }: DashboardTemplateProps) {
+export function DashboardTemplate({ main, below }: DashboardTemplateProps) {
   return (
-    <div className="flex items-center justify-center p-4 md:p-6">
-      {main}
+    <div className="flex justify-center p-4 md:p-6 pt-10 md:pt-16">
+      <div className="w-full max-w-md flex flex-col gap-4">
+        {main}
+        {below}
+      </div>
     </div>
   );
 }
