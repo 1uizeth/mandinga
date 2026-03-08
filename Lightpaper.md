@@ -305,7 +305,21 @@ Mandinga Protocol is a savings primitive that encodes cooperative credit logic i
 
 The success metric is the number of circles that completed without a single point of failure, the number of people whose position was activated sooner than linear saving would have allowed, and the degree to which credit access expanded to people who previously had no path to it except through institutional gatekeeping. Not TVL. Not APY.
 
-The vision is a world where the savings circle (the mechanism communities across every continent invented independently, for the same reason, across thousands of years) is finally structurally sound. Where it operates across borders, time zones, currencies, and jurisdictions without requiring any of them to be aligned. Where it is governed by the members who use it, not by the institution that administers it. Where what it enables (credit access for productive assets, owned by no institution, captured by no administradora) grows with the ecosystem of on-chain assets and the communities building on top of it.
+### From Activation to Ownership
+
+Throughout this lightpaper, activation comes with an open question: the pool is locked in the protocol, your position is marked active — what do you do with it?
+
+In v1, activation is the primitive. The circle ran without an organiser, without an auction, without anyone disappearing with the pot. That is the foundation.
+
+What Mandinga builds toward from that foundation is the answer. An active position becomes a verifiable claim — proof of cooperative selection that can be used to acquire a real asset. A motorcycle for a delivery driver expanding what he can earn. Equipment for a seamstress growing her business. A home for a family that has been saving toward one. The protocol holds a stake in the underlying asset as lienholder until all remaining installments are settled. When the circle completes and obligations are met, ownership transfers fully to the member.
+
+The cooperative is the lienholder. Not a bank. Not an administradora. Code.
+
+This is the carta de crédito model without the institution. The consórcio understood that credit directed toward productive assets was more powerful than credit that dissolved into liquidity. What it never managed was doing that without an administradora in the middle, without an auction that let capital purchase earlier access, without a fee structure that charged the same regardless of when it served you. Mandinga Protocol is building the same destination — without any of that.
+
+### The World It Points Toward
+
+The vision is a world where the savings circle (the mechanism communities across every continent invented independently, for the same reason, across thousands of years) is finally structurally sound. Where it operates across borders, time zones, currencies, and jurisdictions without requiring any of them to be aligned. Where it is governed by the members who use it, not by the institution that administers it. Where what it enables (cooperative credit for productive assets, owned by no institution, captured by no administradora) grows with the ecosystem of on-chain assets and the communities building on top of it.
 
 Savings circles have always been a public good. Mandinga Protocol is the infrastructure to make them one at scale.
 
