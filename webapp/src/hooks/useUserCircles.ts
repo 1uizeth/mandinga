@@ -72,9 +72,6 @@ export function useUserCircles() {
     if (!circlesData || circleCount === 0) return [];
 
     const result: UserCircle[] = [];
-    const shieldedIdLower = shieldedId
-      ? (shieldedId as string).toLowerCase()
-      : null;
 
     for (let i = 0; i < circleCount; i++) {
       const circleIdx = i * 2;
@@ -86,12 +83,9 @@ export function useUserCircles() {
 
       if (!circleResult || !membersResult) continue;
 
-      const slot =
-        shieldedIdLower !== null
-          ? membersResult.findIndex(
-              (m) => (m as string).toLowerCase() === shieldedIdLower
-            )
-          : -1;
+      const slot = shieldedId
+        ? membersResult.findIndex((m) => (m as string).toLowerCase() === (shieldedId as string).toLowerCase())
+        : -1;
 
       const c = circleResult as readonly [
         bigint,

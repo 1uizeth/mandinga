@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccount } from "wagmi";
@@ -10,9 +11,22 @@ import { ThemeToggle } from "@/components/molecules/ThemeToggle";
 export function AppHeader() {
   const { isConnected } = useAccount();
   const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 0);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full">
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full transition-all duration-200",
+        scrolled && "bg-white dark:bg-background shadow-md"
+      )}
+    >
       <div className="flex h-16 md:h-20 w-full items-center justify-between px-4 md:px-6 lg:px-8">
         <Link
           href="/"

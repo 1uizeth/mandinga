@@ -25,6 +25,7 @@
     "react-dom": "^18",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7",
+    "@metamask/jazzicon": "^2.0.0",
     "viem": "^2.47.0",
     "wagmi": "^2.19.5"
   },
