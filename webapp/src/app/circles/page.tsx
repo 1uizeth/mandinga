@@ -56,9 +56,9 @@ function CirclesContent({
   if (circles.length === 0) {
     return (
       <div className="col-span-full rounded-lg border border-dashed p-8 text-center">
-        <p className="text-muted-foreground mb-2">You are not in any circles yet.</p>
+        <p className="text-muted-foreground mb-2">No circles yet.</p>
         <p className="text-sm text-muted-foreground">
-          Browse circles to discover and join new savings circles.
+          Create a circle or wait for others to create one.
         </p>
       </div>
     );

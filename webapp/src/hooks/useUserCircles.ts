@@ -26,22 +26,20 @@ export function useUserCircles() {
   const { shieldedId, isLoading: shieldedLoading } = useShieldedId();
 
   const { data: nextCircleId } = useReadContracts({
-    contracts: shieldedId
-      ? [
-          {
-            address: SAVINGS_CIRCLE,
-            abi: SavingsCircleAbi.abi as never,
-            functionName: "nextCircleId",
-          },
-        ]
-      : [],
+    contracts: [
+      {
+        address: SAVINGS_CIRCLE,
+        abi: SavingsCircleAbi.abi as never,
+        functionName: "nextCircleId",
+      },
+    ],
   });
 
   const count = nextCircleId?.[0]?.result as bigint | undefined;
   const circleCount = count !== undefined ? Number(count) : 0;
 
   const circleContracts = useMemo(() => {
-    if (!shieldedId || circleCount === 0) return [];
+    if (circleCount === 0) return [];
     const contracts: {
       address: `0x${string}`;
       abi: never;
@@ -65,14 +63,14 @@ export function useUserCircles() {
       );
     }
     return contracts;
-  }, [shieldedId, circleCount]);
+  }, [circleCount]);
 
   const { data: circlesData, isLoading: circlesLoading } = useReadContracts({
     contracts: circleContracts,
   });
 
   const circles: UserCircle[] = useMemo(() => {
-    if (!shieldedId || !circlesData || circleCount === 0) return [];
+    if (!circlesData || circleCount === 0) return [];
 
     const result: UserCircle[] = [];
     for (let i = 0; i < circleCount; i++) {
@@ -85,8 +83,9 @@ export function useUserCircles() {
 
       if (!circleResult || !membersResult) continue;
 
-      const slot = membersResult.findIndex((m) => m === shieldedId);
-      if (slot < 0) continue;
+      const slot = shieldedId
+        ? membersResult.findIndex((m) => (m as string).toLowerCase() === (shieldedId as string).toLowerCase())
+        : -1;
 
       const c = circleResult as readonly [
         bigint,
