@@ -1,8 +1,8 @@
 {
   "schedule": "0 * * * *",
   "savingsCircleAddress": "",
-  "poolSize": "400000000",
-  "memberCount": 4,
+  "poolSize": "40000000000",
+  "memberCount": 5,
   "roundDuration": "7884000",
   "minDepositPerRound": "0"
 }

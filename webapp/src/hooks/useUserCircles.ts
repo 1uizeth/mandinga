@@ -44,7 +44,7 @@ export function useUserCircles() {
       address: `0x${string}`;
       abi: never;
       functionName: "circles" | "getMembers";
-      args: [bigint] | [number];
+      args: [bigint];
     }[] = [];
     for (let i = 0; i < circleCount; i++) {
       contracts.push(
@@ -58,13 +58,12 @@ export function useUserCircles() {
           address: SAVINGS_CIRCLE,
           abi: SavingsCircleAbi.abi as never,
           functionName: "getMembers",
-          args: [i],
+          args: [BigInt(i)],
         }
       );
     }
     return contracts;
   }, [circleCount]);
-
   const { data: circlesData, isLoading: circlesLoading } = useReadContracts({
     contracts: circleContracts,
   });
@@ -73,6 +72,7 @@ export function useUserCircles() {
     if (!circlesData || circleCount === 0) return [];
 
     const result: UserCircle[] = [];
+
     for (let i = 0; i < circleCount; i++) {
       const circleIdx = i * 2;
       const membersIdx = i * 2 + 1;
