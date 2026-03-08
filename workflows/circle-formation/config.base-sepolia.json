@@ -8,8 +8,8 @@
       "gasLimit": "500000"
     }
   ],
-  "poolSize": "1000000000",
-  "memberCount": 4,
+  "poolSize": "10000000000",
+  "memberCount": 20,
   "roundDuration": "600",
   "minDepositPerRound": "1000000"
 }
