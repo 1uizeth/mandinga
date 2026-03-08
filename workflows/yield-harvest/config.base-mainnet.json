@@ -1,3 +1,11 @@
 {
-  "schedule": "*/5 * * * *"
+  "schedule": "*/5 * * * *",
+  "evms": [
+    {
+      "chainName": "ethereum-mainnet-base-1",
+      "consumerAddress": "REPLACE_WITH_YIELD_HARVEST_CONSUMER_ADDRESS",
+      "yieldRouterAddress": "REPLACE_WITH_YIELD_ROUTER_ADDRESS",
+      "gasLimit": "500000"
+    }
+  ]
 }

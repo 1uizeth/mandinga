@@ -1,3 +1,11 @@
 {
-  "schedule": "*/5 * * * *"
+  "schedule": "*/5 * * * *",
+  "evms": [
+    {
+      "chainName": "ethereum-testnet-sepolia-base-1",
+      "consumerAddress": "0x6054C42ddDf0E5502E4A756B0D168a4AEdc41001",
+      "yieldRouterAddress": "0x5F72f802ffa43C79eD513eFd7b620c1Bb0D59Ed1",
+      "gasLimit": "500000"
+    }
+  ]
 }

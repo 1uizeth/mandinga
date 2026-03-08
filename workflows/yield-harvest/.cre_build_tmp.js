@@ -15854,31 +15854,22 @@ init_encodeAbiParameters();
 function alertOnFailure(context, error, metadata) {
   console.error(`[ALERT] ${context}`, error, metadata ?? {});
 }
-var MIN_ROUND_DURATION_SEC = 60;
-var REPORT_ABI_PARAMS = parseAbiParameters("address savingsCircle, uint256 poolSize, uint16 memberCount, uint256 roundDuration, uint256 minDepositPerRound");
-async function createCircle(runtime2, evmConfig, poolSize, memberCount, roundDuration, minDepositPerRound) {
-  if (roundDuration < BigInt(MIN_ROUND_DURATION_SEC)) {
-    runtime2.log("[createCircle] roundDuration < 1 min — skipping");
-    return false;
-  }
+var REPORT_ABI_PARAMS = parseAbiParameters("address yieldRouter");
+async function harvest(runtime2, evmConfig) {
   const network248 = getNetwork({
     chainFamily: "evm",
     chainSelectorName: evmConfig.chainName
   });
   if (!network248) {
-    runtime2.log(`[createCircle] Unknown chain: ${evmConfig.chainName}`);
+    runtime2.log(`[harvest] Unknown chain: ${evmConfig.chainName}`);
     return false;
   }
   const evmClient = new ClientCapability(network248.chainSelector.selector);
   const reportData = encodeAbiParameters(REPORT_ABI_PARAMS, [
-    evmConfig.savingsCircleAddress,
-    poolSize,
-    memberCount,
-    roundDuration,
-    minDepositPerRound
+    evmConfig.yieldRouterAddress
   ]);
   try {
-    runtime2.log(`[createCircle] Writing report: savingsCircle=${evmConfig.savingsCircleAddress}, poolSize=${poolSize}, memberCount=${memberCount}`);
+    runtime2.log(`[harvest] Writing report: yieldRouter=${evmConfig.yieldRouterAddress}`);
     const reportResponse = runtime2.report({
       encodedPayload: hexToBase64(reportData),
       encoderName: "evm",
@@ -15894,33 +15885,29 @@ async function createCircle(runtime2, evmConfig, poolSize, memberCount, roundDur
     }).result();
     if (writeReportResult.txStatus === TxStatus.SUCCESS) {
       const txHash = bytesToHex(writeReportResult.txHash ?? new Uint8Array(32));
-      runtime2.log(`[createCircle] Write report succeeded: ${txHash}`);
+      runtime2.log(`[harvest] Write report succeeded: ${txHash}`);
       return !!txHash && txHash !== "0x";
     } else {
-      runtime2.log(`[createCircle] Write report failed: ${writeReportResult.txStatus}`);
+      runtime2.log(`[harvest] Write report failed: ${writeReportResult.txStatus}`);
       return false;
     }
   } catch (err) {
-    alertOnFailure("createCircle", err, {
+    alertOnFailure("harvest", err, {
       consumerAddress: evmConfig.consumerAddress,
-      savingsCircleAddress: evmConfig.savingsCircleAddress,
-      poolSize: poolSize.toString(),
-      memberCount,
-      roundDuration: roundDuration.toString()
+      yieldRouterAddress: evmConfig.yieldRouterAddress
     });
     return false;
   }
 }
 var onCronTrigger = async (runtime2, _payload) => {
-  const config = runtime2.config;
-  runtime2.log("Circle formation cron trigger fired");
-  const evmConfig = config.evms?.[0];
+  runtime2.log("Yield harvest cron trigger fired");
+  const evmConfig = runtime2.config.evms?.[0];
   if (!evmConfig) {
-    runtime2.log("[createCircle] No evms config — skipping");
-    return "createCircle skipped: no evms config";
+    runtime2.log("[harvest] No evms config — skipping");
+    return "harvest skipped: no evms config";
   }
-  const ok = await createCircle(runtime2, evmConfig, BigInt(config.poolSize), config.memberCount, BigInt(config.roundDuration), config.minDepositPerRound ? BigInt(config.minDepositPerRound) : 0n);
-  return ok ? "circle created" : "createCircle failed or skipped";
+  const ok = await harvest(runtime2, evmConfig);
+  return ok ? "harvest executed" : "harvest failed";
 };
 var initWorkflow = (config) => {
   const cronTrigger = new cre.capabilities.CronCapability;

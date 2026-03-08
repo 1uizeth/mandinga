@@ -4,19 +4,15 @@ import {
   type Runtime,
   type CronPayload,
 } from "@chainlink/cre-sdk";
-import { createCircle } from "./tasks/createCircle.js";
+import { createCircle, type CreateCircleEvmConfig } from "./tasks/createCircle.js";
 
 type Config = {
   schedule: string;
-  savingsCircleAddress: string;
+  evms: CreateCircleEvmConfig[];
   poolSize: string;
   memberCount: number;
   roundDuration: string;
   minDepositPerRound?: string;
-  /** Skip waiting for tx receipt (faster simulation) */
-  skipReceiptWait?: boolean;
-  /** Simulate only, do not broadcast (for cre workflow simulate) */
-  dryRun?: boolean;
 };
 
 const onCronTrigger = async (
@@ -26,15 +22,19 @@ const onCronTrigger = async (
   const config = runtime.config;
   runtime.log("Circle formation cron trigger fired");
 
+  const evmConfig = config.evms?.[0];
+  if (!evmConfig) {
+    runtime.log("[createCircle] No evms config — skipping");
+    return "createCircle skipped: no evms config";
+  }
+
   const ok = await createCircle(
     runtime,
-    config.savingsCircleAddress as `0x${string}`,
+    evmConfig,
     BigInt(config.poolSize),
     config.memberCount,
     BigInt(config.roundDuration),
-    config.minDepositPerRound ? BigInt(config.minDepositPerRound) : 0n,
-    config.skipReceiptWait ?? false,
-    config.dryRun ?? false
+    config.minDepositPerRound ? BigInt(config.minDepositPerRound) : 0n
   );
 
   return ok ? "circle created" : "createCircle failed or skipped";

@@ -1,17 +1,42 @@
-import { CronCapability, handler, Runner, type Runtime } from "@chainlink/cre-sdk";
+import {
+  cre,
+  Runner,
+  type Runtime,
+  type CronPayload,
+} from "@chainlink/cre-sdk";
+import { harvest, type HarvestEvmConfig } from "./tasks/harvest.js";
 
-type Config = { schedule: string };
+type Config = {
+  schedule: string;
+  evms: HarvestEvmConfig[];
+};
 
-const onCronTrigger = (_runtime: Runtime): string => {
-  return "yield-harvest stub";
+const onCronTrigger = async (
+  runtime: Runtime<Config>,
+  _payload: CronPayload
+): Promise<string> => {
+  runtime.log("Yield harvest cron trigger fired");
+
+  const evmConfig = runtime.config.evms?.[0];
+  if (!evmConfig) {
+    runtime.log("[harvest] No evms config — skipping");
+    return "harvest skipped: no evms config";
+  }
+
+  const ok = await harvest(runtime, evmConfig);
+  return ok ? "harvest executed" : "harvest failed";
 };
 
 const initWorkflow = (config: Config) => {
-  const cron = new CronCapability();
-  return [handler(cron.trigger({ schedule: config.schedule }), onCronTrigger)];
+  const cronTrigger = new cre.capabilities.CronCapability();
+  return [
+    cre.handler(cronTrigger.trigger({ schedule: config.schedule }), onCronTrigger),
+  ];
 };
 
 export async function main() {
   const runner = await Runner.newRunner<Config>();
   await runner.run(initWorkflow);
 }
+
+main();
