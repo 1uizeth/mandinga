@@ -5,7 +5,6 @@ import { useAccount } from "wagmi";
 import { useSavingsPosition } from "@/hooks/useSavingsPosition";
 import { useDeposit } from "@/hooks/useDeposit";
 import { useMockDeposit } from "@/hooks/useMockDeposit";
-import { useYieldAccrual } from "@/hooks/useYieldAccrual";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +45,7 @@ export function SavingsPositionCard({
           isActive: mockDeposit.balance > BigInt(0),
           withdrawable: mockDeposit.balance,
           circleObligation: BigInt(0),
+          yieldEarnedTotal: BigInt(0),
         },
         isLoading: false,
       }
@@ -64,11 +64,11 @@ export function SavingsPositionCard({
 
   const balance = position?.balance ?? BigInt(0);
   const hasBalance = balance > BigInt(0);
-  const { earned } = useYieldAccrual(balance);
+  const earned = Number(position?.yieldEarnedTotal ?? BigInt(0)) / 1_000_000;
 
   const balanceFloat = Number(balance) / 1_000_000;
   const totalDisplay = balanceFloat + earned;
-  const displayCents = Math.floor(totalDisplay * 100);
+  const displayCents = Math.floor(totalDisplay * 1_000_000);
 
   const prevCentsRef = useRef(-1);
   const [flashKey, setFlashKey] = useState(0);
@@ -127,13 +127,13 @@ export function SavingsPositionCard({
           {/* Yield module */}
           <div className="w-full rounded-xl border border-border bg-muted/40 px-5 py-4 flex flex-col gap-4">
 
-            {earned >= 0.0001 ? (
+            {earned > 0 ? (
               <>
                 {/* Earned */}
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Earned</span>
                   <span className="text-xl font-mono tabular-nums font-semibold text-success">
-                    +{earned.toFixed(4)} USDC
+                    +{earned.toFixed(6)} USDC
                   </span>
                 </div>
 
