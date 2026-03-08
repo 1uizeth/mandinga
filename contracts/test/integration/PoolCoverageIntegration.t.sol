@@ -11,7 +11,7 @@ import {ISafetyNetPool} from "../../src/interfaces/ISafetyNetPool.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockYieldRouter} from "../mocks/MockYieldRouter.sol";
 import {MockSavingsAccount} from "../mocks/MockSavingsAccount.sol";
-import {MockVRFCoordinatorV2} from "../mocks/MockVRFCoordinatorV2.sol";
+import {MockVRFCoordinatorV2Plus} from "../mocks/MockVRFCoordinatorV2Plus.sol";
 
 /// @notice Integration tests for SafetyNetPool + SavingsCircle cooperation.
 ///
@@ -23,7 +23,7 @@ contract PoolCoverageIntegrationTest is Test {
     MockUSDC internal usdc;
     MockYieldRouter internal router;
     MockSavingsAccount internal sa;
-    MockVRFCoordinatorV2 internal vrf;
+    MockVRFCoordinatorV2Plus internal vrf;
     SafetyNetPool internal pool;
     SavingsCircle internal sc;
 
@@ -34,7 +34,7 @@ contract PoolCoverageIntegrationTest is Test {
     address internal gov = makeAddr("gov");
 
     bytes32 internal constant KEY_HASH = bytes32(uint256(1));
-    uint64 internal constant SUB_ID = 1;
+    uint256 internal constant SUB_ID = 1;
 
     uint256 internal constant POOL_SIZE = 300e6;    // $300 USDC
     uint16 internal constant MEMBER_COUNT = 3;
@@ -47,7 +47,7 @@ contract PoolCoverageIntegrationTest is Test {
         usdc = new MockUSDC();
         router = new MockYieldRouter(address(usdc));
         sa = new MockSavingsAccount();
-        vrf = new MockVRFCoordinatorV2();
+        vrf = new MockVRFCoordinatorV2Plus();
 
         // Deploy SafetyNetPool with the address SavingsCircle will occupy at next nonce
         address futureCircle = vm.computeCreateAddress(address(this), vm.getNonce(address(this)) + 1);

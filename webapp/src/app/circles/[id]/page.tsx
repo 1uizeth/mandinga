@@ -15,7 +15,6 @@ import { TransactionModal } from "@/components/organisms/TransactionModal";
 import { useCircle } from "@/hooks/useCircle";
 import { useShieldedId } from "@/hooks/useShieldedId";
 import { useCircleMemberPositions } from "@/hooks/useCircleMemberPositions";
-import { useExecuteRound } from "@/hooks/useExecuteRound";
 import { usePendingPayoutWinner } from "@/hooks/usePendingPayoutWinner";
 import { useSavingsPosition } from "@/hooks/useSavingsPosition";
 import { useDeposit } from "@/hooks/useDeposit";
@@ -36,9 +35,6 @@ export default function CircleDetailPage() {
     circle ? BigInt(circle.circleId) : undefined,
     circle?.memberCount ?? 0
   );
-  const { executeRound, isPending: executePending } = useExecuteRound({
-    onSuccess: () => router.refresh(),
-  });
   const { position } = useSavingsPosition();
   const {
     depositToSavings,
@@ -126,11 +122,6 @@ export default function CircleDetailPage() {
         ).length
       : 0;
 
-  const canExecuteRound =
-    isActive &&
-    roundIsDue &&
-    Number(circle.pendingVrfRequestId) === 0;
-
   const isCurrentUserWinner =
     !!winner &&
     !!shieldedId &&
@@ -192,15 +183,6 @@ export default function CircleDetailPage() {
                 nextRoundTimestamp={circle.nextRoundTimestamp}
                 roundNumber={roundNumber}
               />
-              {canExecuteRound && (
-                <Button
-                  onClick={() => executeRound(BigInt(circle.circleId))}
-                  disabled={executePending}
-                  className="w-full"
-                >
-                  {executePending ? <Spinner size="sm" /> : "Execute round"}
-                </Button>
-              )}
             </>
           )}
         </CardContent>

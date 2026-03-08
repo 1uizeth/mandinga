@@ -3,13 +3,10 @@
   "evms": [
     {
       "chainName": "ethereum-testnet-sepolia-base-1",
-      "consumerAddress": "0x77E4E6fF61539ae0A636F84bCe593534D2F5e4c2",
+      "consumerAddress": "0xf057728F77db34eD2c5812e3e4F94dbE7f00057d",
       "savingsCircleAddress": "0x31Ea63031a34bE6672F03fC24EbdC44cd63cDca1",
       "gasLimit": "500000"
     }
   ],
-  "poolSize": "1000000000",
-  "memberCount": 4,
-  "roundDuration": "600",
-  "minDepositPerRound": "1000000"
+  "circleId": "1"
 }

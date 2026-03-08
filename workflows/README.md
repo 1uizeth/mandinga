@@ -118,7 +118,7 @@ forge script script/DeployYieldHarvestConsumer.s.sol --broadcast --rpc-url https
 
 ### 2. Update config
 
-Edit `yield-harvest/config.base-sepolia.json` and set `consumerAddress` to the deployed consumer. The `yieldRouterAddress` is pre-configured for Base Sepolia (`0x5F72f802ffa43C79eD513eFd7b620c1Bb0D59Ed1`).
+Edit `yield-harvest/config.base-sepolia.json` and set `consumerAddress` to the deployed consumer. The `yieldRouterAddress` is pre-configured for Base Sepolia (`0xC2991B227fDEb92d9DAC68E3e7fc8DD5E30a0E64`).
 
 ### 3. Simulate
 
