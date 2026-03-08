@@ -7,7 +7,7 @@ import {SavingsCircle} from "../../src/core/SavingsCircle.sol";
 import {ISavingsAccount} from "../../src/interfaces/ISavingsAccount.sol";
 import {ISafetyNetPool} from "../../src/interfaces/ISafetyNetPool.sol";
 import {MockSavingsAccount} from "../mocks/MockSavingsAccount.sol";
-import {MockVRFCoordinatorV2} from "../mocks/MockVRFCoordinatorV2.sol";
+import {MockVRFCoordinatorV2Plus} from "../mocks/MockVRFCoordinatorV2Plus.sol";
 import {MockSafetyNetPool} from "../mocks/MockSafetyNetPool.sol";
 
 /// @notice Unit tests for Task 003-02: minDepositPerRound feature in SavingsCircle.
@@ -17,7 +17,7 @@ contract MinDepositPerRoundTest is Test {
     event MemberSelected(uint256 indexed circleId, uint16 slot, bytes32 shieldedId);
 
     MockSavingsAccount internal sa;
-    MockVRFCoordinatorV2 internal vrf;
+    MockVRFCoordinatorV2Plus internal vrf;
     MockSafetyNetPool internal pool;
     SavingsCircle internal sc;
 
@@ -33,11 +33,11 @@ contract MinDepositPerRoundTest is Test {
     uint256 internal constant ROUND_DUR = 5 minutes;
 
     bytes32 internal constant KEY_HASH = bytes32(uint256(1));
-    uint64 internal constant SUB_ID = 1;
+    uint256 internal constant SUB_ID = 1;
 
     function setUp() public {
         sa = new MockSavingsAccount();
-        vrf = new MockVRFCoordinatorV2();
+        vrf = new MockVRFCoordinatorV2Plus();
         pool = new MockSafetyNetPool();
         pool.setAvailableCapital(type(uint256).max);
         sc = new SavingsCircle(ISavingsAccount(address(sa)), ISafetyNetPool(address(pool)), address(vrf), KEY_HASH, SUB_ID);

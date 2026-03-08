@@ -2,8 +2,9 @@
 pragma solidity ^0.8.20;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
-import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/dev/vrf/VRFConsumerBaseV2Plus.sol";
+import {IVRFCoordinatorV2Plus} from "@chainlink/contracts/src/v0.8/dev/interfaces/IVRFCoordinatorV2Plus.sol";
+import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/dev/vrf/libraries/VRFV2PlusClient.sol";
 
 import {ISavingsAccount} from "../interfaces/ISavingsAccount.sol";
 import {ICircleBuffer} from "../interfaces/ICircleBuffer.sol";
@@ -24,7 +25,7 @@ import {ISafetyNetPool} from "../interfaces/ISafetyNetPool.sol";
 ///  • After every member has been selected once, the circle completes and all
 ///    obligations are reset to zero.
 ///
-contract SavingsCircle is VRFConsumerBaseV2, ReentrancyGuard {
+contract SavingsCircle is VRFConsumerBaseV2Plus, ReentrancyGuard {
     /// @notice Minimum duration of a single round.
     /// @dev Relaxed to 1 minute for testnet convenience. Restore to 7 days for mainnet.
     uint256 public constant MIN_ROUND_DURATION = 1 minutes;
@@ -46,13 +47,14 @@ contract SavingsCircle is VRFConsumerBaseV2, ReentrancyGuard {
     // VRF configuration
     // ──────────────────────────────────────────────
 
-    VRFCoordinatorV2Interface private immutable _coordinator;
     bytes32 public immutable keyHash;
-    uint64 public immutable subscriptionId;
+    uint256 public immutable subscriptionId;
 
     uint16 public constant REQUEST_CONFIRMATIONS = 3;
     uint32 public constant CALLBACK_GAS_LIMIT = 300_000;
     uint32 private constant NUM_WORDS = 1;
+    /// @notice Pay VRF requests in native token (true) or LINK (false).
+    bool public constant NATIVE_PAYMENT = true;
 
     // ──────────────────────────────────────────────
     // Protocol contracts
@@ -156,11 +158,10 @@ contract SavingsCircle is VRFConsumerBaseV2, ReentrancyGuard {
         ISafetyNetPool _pool,
         address vrfCoordinator,
         bytes32 _keyHash,
-        uint64 _subscriptionId
-    ) VRFConsumerBaseV2(vrfCoordinator) {
+        uint256 _subscriptionId
+    ) VRFConsumerBaseV2Plus(vrfCoordinator) {
         savingsAccount = _savingsAccount;
         pool = _pool;
-        _coordinator = VRFCoordinatorV2Interface(vrfCoordinator);
         keyHash = _keyHash;
         subscriptionId = _subscriptionId;
     }
@@ -315,12 +316,17 @@ contract SavingsCircle is VRFConsumerBaseV2, ReentrancyGuard {
             }
         }
 
-        uint256 requestId = _coordinator.requestRandomWords(
-            keyHash,
-            subscriptionId,
-            REQUEST_CONFIRMATIONS,
-            CALLBACK_GAS_LIMIT,
-            NUM_WORDS
+        uint256 requestId = s_vrfCoordinator.requestRandomWords(
+            VRFV2PlusClient.RandomWordsRequest({
+                keyHash: keyHash,
+                subId: subscriptionId,
+                requestConfirmations: REQUEST_CONFIRMATIONS,
+                callbackGasLimit: CALLBACK_GAS_LIMIT,
+                numWords: NUM_WORDS,
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: NATIVE_PAYMENT})
+                )
+            })
         );
 
         vrfRequests[requestId] = circleId;

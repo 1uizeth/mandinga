@@ -4,9 +4,9 @@
     {
       "chainName": "ethereum-testnet-sepolia-base-1",
       "consumerAddress": "0xf057728F77db34eD2c5812e3e4F94dbE7f00057d",
-      "savingsCircleAddress": "0x048192397ca62589Fe7b241F75c7E4340D49296c",
+      "savingsCircleAddress": "0x31Ea63031a34bE6672F03fC24EbdC44cd63cDca1",
       "gasLimit": "500000"
     }
   ],
-  "circleId": "0"
+  "circleId": "1"
 }

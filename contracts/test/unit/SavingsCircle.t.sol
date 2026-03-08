@@ -7,7 +7,7 @@ import {SavingsCircle} from "../../src/core/SavingsCircle.sol";
 import {ISavingsAccount} from "../../src/interfaces/ISavingsAccount.sol";
 import {ISafetyNetPool} from "../../src/interfaces/ISafetyNetPool.sol";
 import {MockSavingsAccount} from "../mocks/MockSavingsAccount.sol";
-import {MockVRFCoordinatorV2} from "../mocks/MockVRFCoordinatorV2.sol";
+import {MockVRFCoordinatorV2Plus} from "../mocks/MockVRFCoordinatorV2Plus.sol";
 import {MockSafetyNetPool} from "../mocks/MockSafetyNetPool.sol";
 
 contract SavingsCircleTest is Test {
@@ -23,7 +23,7 @@ contract SavingsCircleTest is Test {
     event MemberResumed(uint256 indexed circleId, uint16 slot);
 
     MockSavingsAccount internal sa;
-    MockVRFCoordinatorV2 internal vrf;
+    MockVRFCoordinatorV2Plus internal vrf;
     MockSafetyNetPool internal buf;
     SavingsCircle internal sc;
 
@@ -41,13 +41,13 @@ contract SavingsCircleTest is Test {
     uint256 internal constant ROUND_DUR = 5 minutes;
 
     bytes32 internal constant KEY_HASH = bytes32(uint256(1));
-    uint64 internal constant SUB_ID = 1;
+    uint256 internal constant SUB_ID = 1;
 
     address[] internal members5 = [alice, bob, carol, dave, eve];
 
     function setUp() public {
         sa = new MockSavingsAccount();
-        vrf = new MockVRFCoordinatorV2();
+        vrf = new MockVRFCoordinatorV2Plus();
         buf = new MockSafetyNetPool();
         buf.setAvailableCapital(type(uint256).max); // pool always has capital in unit tests
         sc = new SavingsCircle(

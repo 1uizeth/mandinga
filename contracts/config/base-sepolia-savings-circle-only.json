@@ -1,0 +1,11 @@
+{
+  "chainId": 84532,
+  "network": "base-sepolia",
+  "savingsAccount": "0x436080D0542694049141f364b0641e39fAfF0a75",
+  "safetyNetPool": "0x262f77c799832A57d709acdD801e8D983101dd2c",
+  "chainlink": {
+    "vrfCoordinator": "0x5C210eF41CD1a72de73bF76eC39637bB0d3d7BEE",
+    "keyHash": "0x9e1344a1247c8a1785d0a4681a27152bffdb43666ae5bf7d14d24a5efd44bf71",
+    "subscriptionId": "22541353100437610579163995434568313965052913261684141865539618619101280491621"
+  }
+}

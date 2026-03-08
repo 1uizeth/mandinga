@@ -11,7 +11,7 @@ import {IYieldRouter} from "../../src/interfaces/IYieldRouter.sol";
 import {MockUSDC} from "../mocks/MockUSDC.sol";
 import {MockYieldRouter} from "../mocks/MockYieldRouter.sol";
 import {MockSavingsAccount} from "../mocks/MockSavingsAccount.sol";
-import {MockVRFCoordinatorV2} from "../mocks/MockVRFCoordinatorV2.sol";
+import {MockVRFCoordinatorV2Plus} from "../mocks/MockVRFCoordinatorV2Plus.sol";
 import {MockSafetyNetPool} from "../mocks/MockSafetyNetPool.sol";
 
 /// @notice Full end-to-end lifecycle test: 10 members, 10 rounds.
@@ -26,7 +26,7 @@ contract FullCircleLifecycleTest is Test {
     MockUSDC internal usdc;
     MockYieldRouter internal router;
     SavingsAccount internal sa;
-    MockVRFCoordinatorV2 internal vrf;
+    MockVRFCoordinatorV2Plus internal vrf;
     MockSafetyNetPool internal buf;
     SavingsCircle internal sc;
 
@@ -44,7 +44,7 @@ contract FullCircleLifecycleTest is Test {
             address(usdc),
             address(0)        // safetyNetPool — not used in this test
         );
-        vrf = new MockVRFCoordinatorV2();
+        vrf = new MockVRFCoordinatorV2Plus();
         buf = new MockSafetyNetPool();
         buf.setAvailableCapital(type(uint256).max);
         sc = new SavingsCircle(
@@ -52,7 +52,7 @@ contract FullCircleLifecycleTest is Test {
             ISafetyNetPool(address(buf)),
             address(vrf),
             bytes32(uint256(1)),
-            uint64(1)
+            uint256(1)
         );
 
         // Fund router with ample USDC
@@ -90,7 +90,7 @@ contract FullCircleLifecycleTest is Test {
             ISafetyNetPool(address(buf)),
             address(vrf),
             bytes32(uint256(1)),
-            uint64(1)
+            uint256(1)
         );
 
         // Pre-fund each member
@@ -173,7 +173,7 @@ contract FullCircleLifecycleTest is Test {
             ISafetyNetPool(address(buf)),
             address(vrf),
             bytes32(uint256(2)),
-            uint64(1)
+            uint256(1)
         );
 
         for (uint256 i = 0; i < MEMBER_COUNT; i++) {
@@ -209,7 +209,7 @@ contract FullCircleLifecycleTest is Test {
             ISafetyNetPool(address(buf)),
             address(vrf),
             bytes32(uint256(3)),
-            uint64(1)
+            uint256(1)
         );
 
         for (uint256 i = 0; i < MEMBER_COUNT; i++) {
