@@ -2,6 +2,8 @@
 
 Spec 006 — Automation Layer (Chainlink CRE). Four workflows for protocol automation on Base.
 
+> **Documentation:** See [CRE-WORKFLOWS.md](./CRE-WORKFLOWS.md) for a detailed guide on how each workflow works, why it exists, and flow diagrams.
+
 ## Prerequisites
 
 1. **CRE CLI** — [Install](https://docs.chain.link/cre); `cre --version` succeeds
