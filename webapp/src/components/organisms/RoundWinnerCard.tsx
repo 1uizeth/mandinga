@@ -39,35 +39,32 @@ export function RoundWinnerCard({
         <h4 className="text-sm font-semibold">
           {isCurrentUser ? `You won round ${roundNumber ?? "—"}!` : roundLabel}
         </h4>
-        {isCurrentUser ? (
-          <div className="flex flex-col items-center gap-4">
-            <img
-              src={RAINBOW_CAT_GIF}
-              alt="Rainbow cat celebration"
-              className="w-48 h-auto rounded-lg"
-            />
-            <p className="text-sm text-muted-foreground font-mono">
-              {truncateShieldedId(winner.winningShieldedId)}
-            </p>
-            {onClaim && (
-              <Button
-                onClick={onClaim}
-                disabled={isClaimPending}
-                className="w-full sm:w-auto"
-              >
-                {isClaimPending ? (
-                  <Spinner size="sm" />
-                ) : (
-                  "Claim Payout"
-                )}
-              </Button>
-            )}
-          </div>
-        ) : (
-          <p className="text-sm font-mono text-muted-foreground">
+        <div className="flex flex-col items-center gap-4">
+          <img
+            src={RAINBOW_CAT_GIF}
+            alt="Round winner"
+            className="w-48 h-auto rounded-lg"
+          />
+          <p className="text-sm text-muted-foreground font-mono">
             {truncateShieldedId(winner.winningShieldedId)}
+            {isCurrentUser && (
+              <span className="ml-2 text-primary font-medium">(you)</span>
+            )}
           </p>
-        )}
+          {isCurrentUser && onClaim && (
+            <Button
+              onClick={onClaim}
+              disabled={isClaimPending}
+              className="w-full sm:w-auto"
+            >
+              {isClaimPending ? (
+                <Spinner size="sm" />
+              ) : (
+                "Claim Payout"
+              )}
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
