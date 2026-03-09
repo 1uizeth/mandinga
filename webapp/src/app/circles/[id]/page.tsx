@@ -11,11 +11,14 @@ import { NextRoundCountdown } from "@/components/molecules/NextRoundCountdown";
 import { CircleMembersList } from "@/components/organisms/CircleMembersList";
 import { JoinCircleButton } from "@/components/organisms/JoinCircleButton";
 import { RoundWinnerCard } from "@/components/organisms/RoundWinnerCard";
+import { PastWinnersList } from "@/components/organisms/PastWinnersList";
 import { TransactionModal } from "@/components/organisms/TransactionModal";
 import { useCircle } from "@/hooks/useCircle";
 import { useShieldedId } from "@/hooks/useShieldedId";
 import { useCircleMemberPositions } from "@/hooks/useCircleMemberPositions";
 import { usePendingPayoutWinner } from "@/hooks/usePendingPayoutWinner";
+import { usePastWinners } from "@/hooks/usePastWinners";
+import { useClaimPayout } from "@/hooks/useClaimPayout";
 import { useSavingsPosition } from "@/hooks/useSavingsPosition";
 import { useDeposit } from "@/hooks/useDeposit";
 import { Input } from "@/components/ui/input";
@@ -35,6 +38,13 @@ export default function CircleDetailPage() {
     circle ? BigInt(circle.circleId) : undefined,
     circle?.memberCount ?? 0
   );
+  const { pastWinners } = usePastWinners(
+    circle ? BigInt(circle.circleId) : undefined,
+    circle?.memberCount ?? 0
+  );
+  const { claimPayout, isPending: claimPending } = useClaimPayout({
+    onSuccess: () => router.refresh(),
+  });
   const { position } = useSavingsPosition();
   const {
     depositToSavings,
@@ -192,7 +202,18 @@ export default function CircleDetailPage() {
         <RoundWinnerCard
           winner={winner}
           isCurrentUser={isCurrentUserWinner}
+          roundNumber={circle.roundsCompleted}
+          onClaim={
+            isCurrentUserWinner
+              ? () => claimPayout(BigInt(circle.circleId), winner.winningSlot)
+              : undefined
+          }
+          isClaimPending={isCurrentUserWinner ? claimPending : undefined}
         />
+      )}
+
+      {isActive && pastWinners.length > 0 && (
+        <PastWinnersList pastWinners={pastWinners} />
       )}
 
       {isForming && (

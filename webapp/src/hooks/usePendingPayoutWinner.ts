@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { useReadContracts } from "wagmi";
+import { useQuery } from "@tanstack/react-query";
+import { usePublicClient, useReadContract } from "wagmi";
+import { parseAbiItem } from "viem";
 import { SAVINGS_CIRCLE } from "@/lib/contracts";
 import SavingsCircleAbi from "@/lib/abi/ISavingsCircle.json";
 
@@ -10,58 +12,65 @@ export interface PendingPayoutWinner {
   winningShieldedId: `0x${string}`;
 }
 
+const MEMBER_SELECTED_EVENT = parseAbiItem(
+  "event MemberSelected(uint256 indexed circleId, uint16 slot, bytes32 shieldedId)"
+);
+
+/**
+ * Returns the current round winner (most recent MemberSelected who hasn't claimed).
+ * Uses MemberSelected events to get the latest winner, since multiple slots can have
+ * pendingPayout=true when previous winners haven't claimed yet.
+ */
 export function usePendingPayoutWinner(
   circleId: bigint | undefined,
   memberCount: number
 ) {
-  const contracts = useMemo(() => {
-    if (circleId === undefined || memberCount <= 0) return [];
-    const list: {
-      address: `0x${string}`;
-      abi: never;
-      functionName: "pendingPayout" | "getMember";
-      args: [bigint] | [bigint, number];
-      slot?: number;
-    }[] = [];
-    for (let slot = 0; slot < memberCount; slot++) {
-      list.push(
-        {
-          address: SAVINGS_CIRCLE,
-          abi: SavingsCircleAbi.abi as never,
-          functionName: "pendingPayout" as const,
-          args: [circleId, slot] as [bigint, number],
-          slot,
-        },
-        {
-          address: SAVINGS_CIRCLE,
-          abi: SavingsCircleAbi.abi as never,
-          functionName: "getMember" as const,
-          args: [circleId, slot] as [bigint, number],
-          slot,
-        }
-      );
-    }
-    return list;
-  }, [circleId, memberCount]);
+  const publicClient = usePublicClient();
 
-  const { data } = useReadContracts({ contracts });
+  const { data: latestEvent } = useQuery({
+    queryKey: ["memberSelected", circleId?.toString(), SAVINGS_CIRCLE],
+    queryFn: async () => {
+      if (!publicClient || circleId === undefined) return null;
+      const logs = await publicClient.getLogs({
+        address: SAVINGS_CIRCLE,
+        event: MEMBER_SELECTED_EVENT,
+        args: { circleId },
+      });
+      return logs.length > 0 ? logs[logs.length - 1]! : null;
+    },
+    enabled: !!publicClient && circleId !== undefined,
+  });
+
+  const slotFromEvent = latestEvent?.args?.slot;
+  const shieldedIdFromEvent = latestEvent?.args?.shieldedId as
+    | `0x${string}`
+    | undefined;
+
+  const { data: pendingPayout } = useReadContract({
+    address: SAVINGS_CIRCLE,
+    abi: SavingsCircleAbi.abi,
+    functionName: "pendingPayout",
+    args:
+      slotFromEvent !== undefined && circleId !== undefined
+        ? [circleId, slotFromEvent]
+        : undefined,
+  });
 
   const winner: PendingPayoutWinner | null = useMemo(() => {
-    if (!data || memberCount <= 0) return null;
-    for (let slot = 0; slot < memberCount; slot++) {
-      const pendingIdx = slot * 2;
-      const memberIdx = slot * 2 + 1;
-      const pendingResult = data[pendingIdx]?.result;
-      const memberResult = data[memberIdx]?.result as `0x${string}` | undefined;
-      if (pendingResult === true && memberResult) {
-        return {
-          winningSlot: slot,
-          winningShieldedId: memberResult,
-        };
-      }
+    if (
+      circleId === undefined ||
+      memberCount <= 0 ||
+      slotFromEvent === undefined ||
+      !shieldedIdFromEvent ||
+      pendingPayout !== true
+    ) {
+      return null;
     }
-    return null;
-  }, [data, memberCount]);
+    return {
+      winningSlot: slotFromEvent,
+      winningShieldedId: shieldedIdFromEvent,
+    };
+  }, [circleId, memberCount, slotFromEvent, shieldedIdFromEvent, pendingPayout]);
 
   return { winner };
 }
