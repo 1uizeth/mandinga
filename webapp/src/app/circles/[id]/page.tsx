@@ -213,10 +213,7 @@ export default function CircleDetailPage() {
       )}
 
       {isActive && pastWinners.length > 0 && (
-        <PastWinnersList
-          pastWinners={pastWinners}
-          currentUserShieldedId={shieldedId}
-        />
+        <PastWinnersList pastWinners={pastWinners} />
       )}
 
       {isForming && (

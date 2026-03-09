@@ -31,10 +31,16 @@ export function usePendingPayoutWinner(
     queryKey: ["memberSelected", circleId?.toString(), SAVINGS_CIRCLE],
     queryFn: async () => {
       if (!publicClient || circleId === undefined) return null;
+      const toBlock = await publicClient.getBlockNumber();
+      const range = 2000;
+      const fromBlock =
+        Number(toBlock) > range ? toBlock - BigInt(range) : BigInt(0);
       const logs = await publicClient.getLogs({
         address: SAVINGS_CIRCLE,
         event: MEMBER_SELECTED_EVENT,
         args: { circleId },
+        fromBlock,
+        toBlock,
       });
       return logs.length > 0 ? logs[logs.length - 1]! : null;
     },
@@ -42,9 +48,9 @@ export function usePendingPayoutWinner(
   });
 
   const slotFromEvent = latestEvent?.args?.slot;
-  const shieldedIdFromEvent = latestEvent?.args?.shieldedId
-    ? ((latestEvent.args.shieldedId as string).toLowerCase() as `0x${string}`)
-    : undefined;
+  const shieldedIdFromEvent = latestEvent?.args?.shieldedId as
+    | `0x${string}`
+    | undefined;
 
   const { data: pendingPayout } = useReadContract({
     address: SAVINGS_CIRCLE,
