@@ -32,7 +32,7 @@ export function usePendingPayoutWinner(
     queryFn: async () => {
       if (!publicClient || circleId === undefined) return null;
       const toBlock = await publicClient.getBlockNumber();
-      const range = 2000;
+      const range = 4000;
       const fromBlock =
         Number(toBlock) > range ? toBlock - BigInt(range) : BigInt(0);
       const logs = await publicClient.getLogs({
