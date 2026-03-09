@@ -44,11 +44,13 @@ export function PastWinnersList({
                     )}
                   </span>
                 </div>
-                <img
-                  src={RAINBOW_CAT_GIF}
-                  alt="Round winner"
-                  className="w-32 h-auto rounded-lg"
-                />
+                {isCurrentUser && (
+                  <img
+                    src={RAINBOW_CAT_GIF}
+                    alt="You won this round!"
+                    className="w-32 h-auto rounded-lg"
+                  />
+                )}
               </li>
             );
           })}

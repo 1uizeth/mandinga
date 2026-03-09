@@ -42,9 +42,9 @@ export function usePendingPayoutWinner(
   });
 
   const slotFromEvent = latestEvent?.args?.slot;
-  const shieldedIdFromEvent = latestEvent?.args?.shieldedId as
-    | `0x${string}`
-    | undefined;
+  const shieldedIdFromEvent = latestEvent?.args?.shieldedId
+    ? ((latestEvent.args.shieldedId as string).toLowerCase() as `0x${string}`)
+    : undefined;
 
   const { data: pendingPayout } = useReadContract({
     address: SAVINGS_CIRCLE,
